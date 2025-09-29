@@ -1,7 +1,7 @@
-#WELCOME TO RETROS 0.0.1! 
+# **WELCOME TO RETROS 0.0.1!**
 This is an operating system written in a few months by a 16 y/o who likes osdev.
 
-#FEATURES:
+# **FEATURES:**
     -Monolithic kernel
     -No paging, two-level bitmap for up to 256MB of RAM
     -Support for FAT32 
@@ -13,23 +13,23 @@ This is an operating system written in a few months by a 16 y/o who likes osdev.
     -4 stage compilation ( .c -> .o -> .elf -> .bin) for debugging purposes
     -No multitasking
 
-#HOW TO COMPILE:
+# **HOW TO COMPILE:**
     DEPENDENCIES: dd, make, GNU/Binutils, ar, mkfs, qemu
     Just type in 'make' and everything should work
     Serial is exposed via a server on localhost:4321
     For debugging, type in 'make debug' and GDB will pop up
 
-#AVAILABLE COMMANDS:
+# **AVAILABLE COMMANDS:**
     Just type in 'help' in the shell and all commands will be shown
 
-#HOW TO RUN PROGRAMS:
+# **HOW TO RUN PROGRAMS**
     I provided a .sh file called compileBin.sh that trasforms the .c in a .bin via the same 4-stage compilation process as the OS.
     Example: ./compile.sh yourfile.c -> bin/yourfile.bin
     To send a program to the OS, you must:
         Inside the OS, type in 'load [program_name]' to wait for connections
         Outside the OS, use the programsender executable. Example: ./programsender yourfile.bin will send your file to the OS via emulated serial
 
-#HOW TO WORK WITH SERIAL:
+# **HOW TO WORK WITH SERIAL**
     I invented a protocol called SLU (Serial Line Upload). It works like this:
         4 bytes: signature 0xD72A90B1
         4 bytes: packet size
@@ -37,12 +37,12 @@ This is an operating system written in a few months by a 16 y/o who likes osdev.
         4 bytes: signature 0x738F3C42 (optional, useful to terminate connection now and don't wait for timeout)
         In receiving, there is a timeout of approx. 5s for connection and 100ms for each byte sent
 
-#THE SYSCALL LIBRARY:
+# **THE SYSCALL LIBRARY**
     In the lib folder there is a file called libos.a (it will be created at compile-time if it isn't there)
     IMPORTANT: if you wanna use ANY syscall that my OS provides, you have to include C/include/user/kernelAPI.h in your .c
         C/src/core/kernelAPI.c is the file responsible for wrapping syscalls in a more user-friendly way
         
-#HOW TO INCLUDE THE SYSCALL LIBRARY
+# **HOW TO INCLUDE THE SYSCALL LIBRARY**
     To use the syscall library in a different directory than the OS's workspace, you have to:
         Copy the include folder and kernelAPI.c in your workspace directory
         Compile your .c and kernelAPI.c into two separate .o files using i386-elf-gcc. 
@@ -54,7 +54,7 @@ This is an operating system written in a few months by a 16 y/o who likes osdev.
             Or just wait 'till I make a sandbox environment (0.0.2 surely)
 
 
-#ADDITIONAL QUIRKS/INFO:
+# **ADDITIONAL QUIRKS/INFO**
     A sizelog.sh that outputs how much space does the OS consume inside the workspace and inside the VM is provided. It's very useful.
     As of 0.0.1, I can't get emulators other than QEMU running or real hardware.
     As of 0.0.1, everything is in ring 0.
