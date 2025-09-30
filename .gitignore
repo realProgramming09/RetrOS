@@ -1,0 +1,6 @@
+bin/
+obj/
+elf/
+lib/
+*img
+*.txt
