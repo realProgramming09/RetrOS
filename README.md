@@ -1,5 +1,5 @@
 # **WELCOME TO RETROS 0.0.1!**
-This is an operating system written in a few months by a 16 y/o who likes osdev. (If you don't see anything, I'm struggling to commit everything, first time using git)
+This is an operating system written in a few months by a 16 y/o who likes osdev.
 
 **FEATURES:**
 -     Monolithic kernel
