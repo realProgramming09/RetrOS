@@ -1,0 +1,2 @@
+CompilerFlags:
+  Add: [-Wall, -Wextra, -Werror, -I"C/include"]

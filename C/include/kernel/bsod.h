@@ -9,9 +9,6 @@
 #define MMU_OVERWRITE 6
 #define SERIAL_ERROR 7
 
-#define panic(x) panicCode = x; \
-int z =3 / 0;\
-
 typedef struct{
     uint32_t eax;
     uint32_t ebx;
@@ -25,6 +22,6 @@ typedef struct{
     uint32_t isrNumber;
 } RegisterFrame;
 
-
 extern int panicCode;
+void panic(int code);
 void launchBSOD(RegisterFrame frame, int code); //Lancia il BSOD, chiedendo dei registri (dall'ISR)

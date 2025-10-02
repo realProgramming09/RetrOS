@@ -13,7 +13,7 @@ typedef struct File{
     String* path; //Percorso del file
     uint8_t* contents; //I contenuti del file
     uint32_t clusterNumber; //Numero del cluster dove inizia
-} File_t __attribute__((packed));
+}__attribute__((packed)) File_t ;
 
 //Struttura che contiene i dati della cartella (più per leggibilità)
 typedef struct Folder{
@@ -25,7 +25,7 @@ typedef struct Folder{
     struct DirectoryEntry* entries; //I contenuti della cartella 
     uint32_t elements; //Quanti elementi contiene la cartella
     uint32_t totalSize; //Dimensione totale degli elementi nella cartella
-} Folder_t __attribute__((packed));
+}__attribute__((packed)) Folder_t;
 
 //Struttura che contiene i dati di ogni entry (più per leggibilità)
 typedef struct DirectoryEntry{
@@ -42,7 +42,7 @@ typedef struct DirectoryEntry{
     uint16_t lastModificationDate; //Data dell'ultima modifica
     uint16_t clusterNumberLow; //Ultimi 2 byte del cluster
     uint32_t size; //Dimensione del file in byte
-}DirectoryEntry_t __attribute__((packed));
+}__attribute__((packed)) DirectoryEntry_t ;
 
 //Macro che definiscono valori comuni
 #define NAME_SIZE 8

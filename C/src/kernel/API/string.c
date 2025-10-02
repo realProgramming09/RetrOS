@@ -97,13 +97,13 @@ String* concatAndCopyStrings(String* s1, String* s2){
 
     return s3;
 }
-int strLength(String* s){
+int strLength(const String* s){
     return !s ? -1 : s->length;
 }
-int strCapacity(String* s){
+int strCapacity(const String* s){
     return !s ? -1 : s->length;
 }
-char* strPointer(String* s){
+char* strPointer(const String* s){
     if(!s) return NULL;
     char* ptr = genericAlloc(s->length+1); //Allocare in RAM un puntatore di caratteri
     if(!ptr) return NULL;
@@ -190,7 +190,7 @@ StringArray* split(String* s, char c){
     String* temp = newBuffer(s->capacity); //Allocare spazio per un buffer temporaneo
 
     int last = 0, capacity = 8;
-    for(int i = 0, quotes = 0; i < s->length; i++){
+    for(int i = 0; i < s->length; i++){
         if(s->data[i] == c){
             if(last >= capacity){
                 String** tempArray = genericRealloc(array->data, sizeof(String*)*capacity*2);

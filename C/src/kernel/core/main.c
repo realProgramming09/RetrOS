@@ -17,7 +17,7 @@ void main(){
     rootDirInit();
     initShell();
     if(serialInit(COM1, 6) != 0){
-        panic(SERIAL_ERROR)
+        panic(SERIAL_ERROR);
     };
 
     //Scrivere un messaggio di benvenuto

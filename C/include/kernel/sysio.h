@@ -16,8 +16,8 @@ typedef enum{
 
 extern uint8_t currentKeyPressed;
 
-void print(DataType type, void* data); //Stampa qualsiasi cosa a schermo, prendendo come parametro il tipo
-void println(DataType type, void* data); //Print che manda a capo
+void print(DataType type, const void* data); //Stampa qualsiasi cosa a schermo, prendendo come parametro il tipo
+void println(DataType type, const void* data); //Print che manda a capo
 char getChar(); //Ottiene un carattere da tastiera
 
 extern void sendByte(uint16_t port, uint8_t value); //Manda un byte alla porta specificata

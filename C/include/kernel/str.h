@@ -24,9 +24,9 @@ void copyImmediate(String*s, char* str, size_t size); //Copia la stringa nel cha
 void concatStrings(String* s1, String* s2); //Concatena le stringhe
 void append(String* s, char c); //Appende il carattere alla stringa
 
-int strLength(String* s); //Ritorna la lunghezza della stringa
-int strCapacity(String* s); //Ritorna la capacità della stringa (utile nei buffer)
-char* strPointer(String* s); //Ritorna una copia del char* della stringa null terminato in RAM
+int strLength(const String* s); //Ritorna la lunghezza della stringa
+int strCapacity(const String* s); //Ritorna la capacità della stringa (utile nei buffer)
+char* strPointer(const String* s); //Ritorna una copia del char* della stringa null terminato in RAM
 
 void clearString(String* s); //Pulisce la stringa
 void unloadString(String* s); //Scarica ls stringa dalla RAM

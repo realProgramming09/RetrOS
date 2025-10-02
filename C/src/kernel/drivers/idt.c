@@ -1,3 +1,4 @@
+
 #include "kernel/sys.h"
 #include "kernel/terminal.h"
 #include "kernel/sysio.h"
@@ -13,6 +14,7 @@
 #define COM1_RECEIVED 0x24
 #define COM2_RECEIVED 0x23
 #define SYSCALL 0x30
+#define KERNEL_PANIC 0x31
 
 extern void isr0(); //Eh, lo so, ma servono tutte che vanno mappate e ain't no way che lo faccio in asm la logica
 extern void isr1();
@@ -57,7 +59,7 @@ extern void isr49();
 extern void isr50();
 void isrNothing(){}; //ISR per interrupt non mappati
 
-extern void loadIDT(struct IDT* idt);
+;
 uint32_t nullValue = 0;
 uint8_t currentKeyPressed = 0;
  
@@ -93,6 +95,8 @@ struct ISRFrame{
 }__attribute__((packed));
 
 struct IDTEntry table[50];
+
+extern void loadIDT(struct IDT* idt);
  
 RegisterFrame createFrame(struct ISRFrame* f){
     RegisterFrame frame = {
@@ -131,14 +135,14 @@ void idtInit(){
         fillEntry(&table[i], isrFunctions[i], 0x8E);
     }
     fillEntry(&table[48], isrFunctions[48], 0xEE);
-    fillEntry(&table[49], isrFunctions[49], 0x8E);
+    fillEntry(&table[49], isrFunctions[49], 0xEE);
 
     struct IDT idt = {
         .limit = (uint16_t)sizeof(table)-1,
         .base = (uint32_t)&table[0]
     };
 
-    loadIDT(&idt);
+    loadIDT((struct IDT*)&idt);
 
     //Inizializzare il PIC per le IRQ
     sendByte(0x20, 0x11);
@@ -171,9 +175,7 @@ void idtInit(){
 }
 void isrHandler(struct ISRFrame* frame){
     switch(frame->isrNumber){
-        case DIVIDE_BY_ZERO: { //Usata dall'OS per BSODare a comando
-            launchBSOD(createFrame(frame), panicCode);
-        }
+         
         case PIT_FIRE:{
             if(isListening) timePassed++;
             break;
@@ -183,24 +185,27 @@ void isrHandler(struct ISRFrame* frame){
             break;
         }
         case SYSCALL: {
-            sendEOI(frame->isrNumber);
-            asm volatile("sti");
+            sendEOI(frame->isrNumber); //La syscall userà le IRQ
+            asm volatile("sti"); //Riattiviamo le interrupt
             handleSyscall(&frame->eax, &frame->ebx, &frame->ecx, &frame->edx);
             break;
         }
         case COM1_RECEIVED: {
-            while(recByte(COM1+LINE_STATUS_OFFSET) & 1 != 0) serialBuffer[(tail++) % BUFFER_SIZE] = recByte(COM1); 
+            while((recByte(COM1+LINE_STATUS_OFFSET) & 1) != 0) serialBuffer[(tail++) % BUFFER_SIZE] = recByte(COM1); 
             timePassed = 0;
             
             break;
         }
         case COM2_RECEIVED: {
-            while(recByte(COM2+LINE_STATUS_OFFSET) & 1 != 0) serialBuffer[(tail++) % BUFFER_SIZE] = recByte(COM1); 
+            while((recByte(COM2+LINE_STATUS_OFFSET) & 1) != 0) serialBuffer[(tail++) % BUFFER_SIZE] = recByte(COM1); 
             timePassed = 0;
             break;
         }  
+        case KERNEL_PANIC : {
+            launchBSOD(createFrame(frame), panicCode);
+            break;
+        }
         default: {
-            
             launchBSOD(createFrame(frame), 0);
             break;
         }

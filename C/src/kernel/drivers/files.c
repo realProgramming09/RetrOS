@@ -128,17 +128,17 @@ Folder_t openRoot(){
     return folder;
 }
 DirectoryEntry_t* findEntry(Folder_t* folder, String* fullName, uint8_t attributes){
-    if(!folder->entries || !folder || !fullName || !attributes) return NOT_FOUND;
+    if(!folder->entries || !folder || !fullName || !attributes) return (DirectoryEntry_t*)NOT_FOUND;
 
     StringArray* tokens = split(fullName, '.'); //Spezzare il nome completo in nome ed estensione
-    DirectoryEntry_t* entry = NOT_FOUND;
+    DirectoryEntry_t* entry = (DirectoryEntry_t*)NOT_FOUND;
 
     //Scorrere la cartella alla ricerca della entry giusta
     for(int i = 0; folder->entries[i].name[0] != 0; i++){
         if((uint8_t)folder->entries[i].name[0] == FREE_ENTRY) continue; //Entry libera
         if(folder->entries[i].attributes != attributes) continue; //L'attributo deve coincidere
 
-        if(!compareImmediate(tokens->data[0], folder->entries[i].name, NAME_SIZE)){
+        if(!compareImmediate(tokens->data[0], (char*)folder->entries[i].name, NAME_SIZE)){
             if(attributes == 0x20){ //Se è un file, bisogna controllare anche l'estensione
                 if(!strLength(tokens->data[1]) && folder->entries[i].extension[0] == 0){ //Se manca a uno, deve mancare all'altro
                     entry = &folder->entries[i];
@@ -195,7 +195,7 @@ PathInfo parsePath(String* path, int attribute){
             unloadString(parentName);
             unloadString(parentPath);
             unloadString(name);
-            return (PathInfo){.currentEntry = NAME_TOO_LONG};
+            return (PathInfo){.currentEntry = (DirectoryEntry_t*)NAME_TOO_LONG};
         }
         if(!extension && charAt(path, i) == '.') extension = 1;
         if(charAt(path, i) == '/'){ //Siamo a un nome di cartella
@@ -205,7 +205,7 @@ PathInfo parsePath(String* path, int attribute){
             uint8_t found = 0;
             for(int j = 0; entries[j].name[0] != 0; j++){
                 if(entries[j].name[0] == FREE_ENTRY) continue;
-                if(!compareImmediate(name, entries[j].name, NAME_SIZE) && entries[j].attributes == DIRECTORY){
+                if(!compareImmediate(name, (char*)entries[j].name, NAME_SIZE) && entries[j].attributes == DIRECTORY){
                     parent->clusterNumber = (entries[j].clusterNumberHigh << 16) | entries[j].clusterNumberLow;
                     found = 1;
                     break;
@@ -218,7 +218,7 @@ PathInfo parsePath(String* path, int attribute){
                 unloadString(name);
                 unloadString(parentName);
                 unloadString(parentPath);
-                return (PathInfo){ .currentEntry = INVALID_PATH};
+                return (PathInfo){ .currentEntry = (DirectoryEntry_t*)INVALID_PATH};
             }
             
             //Preparare per la prossima iterazione
@@ -270,7 +270,6 @@ int delete(String* path, int attribute){
     if(!path) return NOT_FOUND;
 
     StringArray* tokens = split(path, '/'); //Dividere il path in nomi del filesystem
-    String* fileName = tokens->data[tokens->length-1]; //Il nome del file è alla fine del path
 
     PathInfo info = parsePath(path, attribute);
     Folder_t* parent = info.parentDirectory;
@@ -278,9 +277,9 @@ int delete(String* path, int attribute){
 
     //Gestione errori
     if(!entry) return INVALID_PATH;
-    if(entry == INVALID_PATH) return NOT_FOUND;
-    if(entry == NAME_TOO_LONG) return NAME_TOO_LONG;
-    if(entry == NOT_FOUND){
+    if(entry == (DirectoryEntry_t*)INVALID_PATH) return NOT_FOUND;
+    if(entry == (DirectoryEntry_t*)NAME_TOO_LONG) return NAME_TOO_LONG;
+    if(entry == (DirectoryEntry_t*)NOT_FOUND){
         closeFolder(parent);
         return NOT_FOUND;
     }
@@ -295,18 +294,19 @@ int delete(String* path, int attribute){
     unloadArray(tokens);
     closeFolder(parent);
 
+    return 0; //Tutto in ordine
 }
 int create(String* path, int attribute){
     PathInfo element = parsePath(path, attribute); //Parsare il path per ottenere il nome della cartella genitore
     
     //Gestione errori
     if(!element.currentEntry) return INVALID_PATH;
-    else if(element.currentEntry == INVALID_PATH) return NOT_FOUND;
-    else if(element.currentEntry != NOT_FOUND){
+    else if(element.currentEntry == (DirectoryEntry_t*)INVALID_PATH) return NOT_FOUND;
+    else if(element.currentEntry != (DirectoryEntry_t*)NOT_FOUND){
         closeFolder(element.parentDirectory);
         return ALREADY_EXISTS;
     } 
-    if(element.currentEntry == NAME_TOO_LONG) return NAME_TOO_LONG;
+    if(element.currentEntry == (DirectoryEntry_t*)NAME_TOO_LONG) return NAME_TOO_LONG;
      
 
     //Estrapolare il nome del file/cartella dal path
@@ -339,7 +339,7 @@ int create(String* path, int attribute){
         .clusterNumberHigh = (freeCluster >> 16) & 0xFFFF,
         .clusterNumberLow = freeCluster & 0xFFFF
     };
-    copyImmediate(dividedName->data[0], newEntry.name, NAME_SIZE);
+    copyImmediate(dividedName->data[0], (char*)newEntry.name, NAME_SIZE);
     if(attribute != DIRECTORY && dividedName->length > 1) copyImmediate(dividedName->data[1], newEntry.extension, EXTENSION_SIZE); //Copiare l'estensione solo se è un file e solo se provvista
 
     //Mettere la entry nella cartella parent
@@ -373,16 +373,16 @@ int rename(String* path, String* newName, int attributes){
 
     //Gestione errori
     if(!entry) return INVALID_PATH;
-    if(entry == INVALID_PATH) return NOT_FOUND;
-    if(entry == NAME_TOO_LONG) return NAME_TOO_LONG;
-    if(entry == NOT_FOUND){
+    if(entry == (DirectoryEntry_t*)INVALID_PATH) return NOT_FOUND;
+    if(entry == (DirectoryEntry_t*)NAME_TOO_LONG) return NAME_TOO_LONG;
+    if(entry == (DirectoryEntry_t*)NOT_FOUND){
         closeFolder(parent);
         unloadArray(dividedName);
         return NOT_FOUND;
     }
 
     //Copiare il nome (e l'estensione se è un file ed è provvista)
-    copyImmediate(dividedName->data[0], entry->name, NAME_SIZE);
+    copyImmediate(dividedName->data[0],(char*)entry->name, NAME_SIZE);
     if(attributes == ARCHIVE){
         if(dividedName->length > 1) copyImmediate(dividedName->data[1], entry->extension, EXTENSION_SIZE);
         else for(int i = 0; i < EXTENSION_SIZE; i++) entry->extension[i] = 0;
@@ -410,13 +410,13 @@ void* open(String* path, int attributes){
     StringArray* tokens = split(path, '/'); //Estrapolare il nome del file
 
     //Gestione errori
-    if(!entry) return INVALID_PATH;
-    if(entry == INVALID_PATH) return NOT_FOUND;
-    if(entry == NAME_TOO_LONG) return NAME_TOO_LONG;
-    if(entry == NOT_FOUND){
+    if(!entry) return (DirectoryEntry_t*)INVALID_PATH;
+    if(entry == (DirectoryEntry_t*)INVALID_PATH) return (DirectoryEntry_t*)NOT_FOUND;
+    if(entry == (DirectoryEntry_t*)NAME_TOO_LONG) return (DirectoryEntry_t*)NAME_TOO_LONG;
+    if(entry == (DirectoryEntry_t*)NOT_FOUND){
         closeFolder(parent);
         unloadArray(tokens);
-        return NOT_FOUND;
+        return(DirectoryEntry_t*) NOT_FOUND;
     }
 
     //Ricavare il numero del cluster
@@ -472,12 +472,12 @@ Folder_t* getRoot(){
     return root;
 }
 void rootDirInit(){
-    uint8_t* bootSector = readSectors(0, 1); //Leggere il boot sector
-    uint8_t* FSsector = readSectors(7, 1); //Leggere il settore della FSinfo
+    uint8_t* bootSector = (uint8_t*)readSectors(0, 1); //Leggere il boot sector
+    uint8_t* FSsector = (uint8_t*)readSectors(7, 1); //Leggere il settore della FSinfo
 
     //Leggere BPB, EBPB e FSinfo
     bpb = (struct BPB*)bootSector;
-    ebpb = (struct EBPB*)(bootSector + sizeof(struct BPB));
+    ebpb = (struct FAT32_EBPB*)(bootSector + sizeof(struct BPB));
     fs = (struct FSinfo*)FSsector;
     entriesSize =  bpb->clusterSize * bpb->sectorSize / sizeof(DirectoryEntry_t);
 

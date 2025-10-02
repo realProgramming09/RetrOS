@@ -22,7 +22,7 @@ struct E820Entry{
 typedef struct SegmentHeader{
     uint8_t* base; //Indirizzo iniziale dell'area allocata
     uint32_t segmentCount; //Quanti segmenti l'area copre
-}SegmentHeader_t;__attribute__((packed));
+}__attribute__((packed)) SegmentHeader_t;
 
 MMU_t miniMMU;
 static MMU_t* state;
@@ -31,7 +31,7 @@ uint32_t segmentBitmap[SEG_OFFSET_SIZE];
  
 uint32_t detectRam(void){
     uint32_t totalCapacity = 0;
-    struct E820Entry* table = E820_ADDR; //Ottenere la tavola della RAM dall'indirizzo del bootloader
+    struct E820Entry* table = (struct E820Entry*)E820_ADDR; //Ottenere la tavola della RAM dall'indirizzo del bootloader
     uint8_t counter = *(uint8_t*)E820_COUNT_ADDR; 
 
     //Traversarla e segnare ogni segmento utile 
@@ -63,9 +63,6 @@ MMU_t* mmuInit(){
     state = &miniMMU;
     return state;
 }
-void loadMMU(MMU_t* m){
-     
-}
 void* genericAlloc(size_t size){
     if(size < 1) return NULL; //Dimensione invalida
      
@@ -90,7 +87,7 @@ void* genericAlloc(size_t size){
             if(!(state->segmentBitmap[i] & ((uint32_t)1 << j))){
                 if(!base){ //Il primo segmento libero che incontriamo, impostiamone l'indirizzo assoluto in un puntatore
                     uint16_t segNumber = i*32+j;
-                    base = RAM_START_ADDR + segNumber * SEG_SIZE;
+                    base = (uint8_t*)(RAM_START_ADDR + segNumber * SEG_SIZE);
                 }
                 remaining--;
             }
@@ -132,11 +129,4 @@ void* genericAlloc(size_t size){
     return header.base;
 
 }   
-
-void genericFree(void* ptr){
-     
-}
-void* genericRealloc(void* ptr, size_t size){
-     
-}
  

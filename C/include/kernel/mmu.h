@@ -10,7 +10,7 @@ typedef struct MMU{
 typedef struct Page{
     uint16_t pageNumber; //Numero della pagina
     void* base; //Indirizzo della pagina
-}Page_t __attribute__((packed));
+}__attribute__((packed)) Page_t;
 
 MMU_t* mmuInit(); //Inizializza la MMU
 uint32_t detectRam(void); //Ritorna la capacità della RAM

@@ -1,13 +1,18 @@
 #include "kernel/sysio.h"
 #include "kernel/fixedMath.h"
 #include "kernel/terminal.h"
+#include "kernel/mmu.h"
 
-
+void printFloat(float f);
+void printc(char c);
+void prints(const String* s);
+void printn(int32_t n);
+void printImmediate(const char* data);
 
 static char keyboardCodes[] = {
-    0x1B, -1, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '\'', 'ì', '\b', 
-    0x09, 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'è', '+', '\n',
-    -3, 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'ò', 'à', 'ù', 
+    0x1B, -1, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '\'', 'i', '\b', 
+    0x09, 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'e', '+', '\n',
+    -3, 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'o', 'a', 'u', 
     -4, '<', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '-', -3, -1, -5, ' '
 };
 static uint8_t isShiftPressed;
@@ -31,7 +36,7 @@ void printc(char c){
     printToTerminal(s);
    
 }
-void prints(String* s){ 
+void prints(const String* s){ 
     char* ptr = strPointer(s);
     printToTerminal(ptr); //Qui è più diretta
     genericFree(ptr);
@@ -62,10 +67,10 @@ void printn(int32_t n){
     str[i] = '\0';
     printToTerminal(str);
 }
-void printImmediate(char* data){
+void printImmediate(const char* data){
     printToTerminal(data);
 }
-void print(DataType type, void* data){
+void print(DataType type, const void* data){
    
     switch(type){ //Chiamare la funzione giusta per ogni dataType
         case INT:
@@ -85,7 +90,7 @@ void print(DataType type, void* data){
             break;
     }
 }
-void println(DataType type, void* data){
+void println(DataType type, const void* data){
     print(type, data);
     printToTerminal("\n");
 }

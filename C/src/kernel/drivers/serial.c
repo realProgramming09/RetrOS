@@ -5,8 +5,8 @@
 
 
 //Macro per aspettare l'hardware
-#define sendWait while(recByte(ID + LINE_CONTROL_OFFSET) & 0x01 == 0)
-#define recWait while(recByte(ID + LINE_CONTROL_OFFSET) & 0x20 == 0 || head == tail)
+#define sendWait while((recByte(ID + LINE_CONTROL_OFFSET) & 0x01) == 0)
+#define recWait while((recByte(ID + LINE_CONTROL_OFFSET) & 0x20) == 0 || head == tail)
 
 #define TIMEOUT 100 //Timeout per la connessione
 
@@ -73,7 +73,7 @@ void recCOM(uint32_t ID, uint8_t* data, size_t size){
 
    
 }
-int listenCOM(uint32_t ID, uint32_t timeout){
+int listenCOM(uint32_t timeout){
     head = 0, tail = 0, timePassed = 0; //Reimpostare il buffer circolare e il timeout counter
 
     //Ascoltare fino al timeout

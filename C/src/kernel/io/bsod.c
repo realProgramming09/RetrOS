@@ -4,9 +4,13 @@
 
 int panicCode = 0;
 
-static inline void printConcat(const char* name, const int* value){
+static inline void printConcat(const char* name, uint32_t* value){
     print(STRING_IMMEDIATE, name);
     println(INT, value);
+}
+void panic(int code){
+    panicCode = code;
+    asm volatile("int $0x31");
 }
 void launchBSOD(RegisterFrame frame, int code){
     setTerminalColor(0x1F);

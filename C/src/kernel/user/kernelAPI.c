@@ -17,20 +17,20 @@ uint32_t syscall(uint32_t syscallNumber, uint32_t param1, uint32_t param2, uint3
     return result;
 }
 void sendSerial(uint32_t ID, void* buffer, size_t size){
-    syscall(SYSCALL_WRITECOM, ID, buffer, size);
+    syscall(SYSCALL_WRITECOM, ID, (uint32_t)buffer, (uint32_t)size);
 }
 void* malloc(size_t size){
-    if(size < 0) return NULL;
-    void* data = (void*)syscall(SYSCALL_MALLOC, size, NULL, NULL);
+    if(size < 1) return NULL;
+    void* data = (void*)syscall(SYSCALL_MALLOC, (uint32_t)size, NULL, NULL);
     return data;
 }
 void free(void* ptr){
     if(!ptr) return;
-    syscall(SYSCALL_FREE, ptr, NULL, NULL);
+    syscall(SYSCALL_FREE, (uint32_t)ptr, NULL, NULL);
 }
 void* realloc(void* ptr, size_t size){
-    if(!ptr || size < 0) return;
-    void* newData = syscall(SYSCALL_REALLOC, ptr, size, NULL);
+    if(!ptr || size < 1) return NULL;
+    void* newData = (void*)syscall(SYSCALL_REALLOC, (uint32_t)ptr, (uint32_t)size, NULL);
     return newData;
 }
 void printf(const char* format, ...){
@@ -42,7 +42,7 @@ void printf(const char* format, ...){
     char toPrint[length];
 
     //Puntatore allo stack dal quale prenderemo i dati
-    uint32_t* stackPointer = &format + 1;
+    uint32_t* stackPointer = (uint32_t*)(&format + 1);
 
      
     sendSerial(COM1, format, length);
@@ -56,19 +56,19 @@ void printf(const char* format, ...){
             //Stampare ciò che abbiamo ricavato finora e pulire il buffer
             if(j > 0){
                 toPrint[j] = 0;
-                syscall(SYSCALL_PRINT, toPrint, STRING_IMMEDIATE, NULL);
+                syscall(SYSCALL_PRINT, (uint32_t)toPrint, STRING_IMMEDIATE, NULL);
                 j = 0;
             }
 
             i++;     
             if(format[i] == 's'){ //Ottenere un char* dallo stack e passarlo nella syscall
                 char* data = (char*)(*stackPointer);
-                syscall(SYSCALL_PRINT, data, STRING_IMMEDIATE, NULL);
+                syscall(SYSCALL_PRINT, (uint32_t)data, STRING_IMMEDIATE, NULL);
                 stackPointer++;
             }
             else if(format[i] == 'd'){
                 int data = (int)(*stackPointer);      
-                syscall(SYSCALL_PRINT, &data, INT, NULL);
+                syscall(SYSCALL_PRINT, (uint32_t)&data, INT, NULL);
                 stackPointer++;
             }
             else if(format[i] == '%'){
@@ -81,12 +81,12 @@ void printf(const char* format, ...){
     }
     if(j > 0) {
         toPrint[j] = 0;
-        syscall(SYSCALL_PRINT, toPrint, STRING_IMMEDIATE, NULL);
+        syscall(SYSCALL_PRINT, (uint32_t)toPrint, STRING_IMMEDIATE, NULL);
     }
 }   
 void scan(void* buffer, size_t size){
     if(!buffer) return;
-    syscall(SYSCALL_SCAN, buffer, size, NULL);
+    syscall(SYSCALL_SCAN, (uint32_t)buffer, size, NULL);
 }
 FILE* open(const char* path){
     if(!path) return NULL;
@@ -97,8 +97,8 @@ FILE* open(const char* path){
     strncpy(path, file->name, strlen(path));
 
     //Syscall ritorna dati del file
-    file->contents = syscall(SYSCALL_OPEN, &file->size, file->name, NULL);
-    if(file->contents == INVALID_PATH || file->contents == NOT_FOUND || file->contents == NAME_TOO_LONG){
+    file->contents = (void*)syscall(SYSCALL_OPEN, (uint32_t)&file->size, (uint32_t)file->name, NULL);
+    if(file->contents == (void*)INVALID_PATH || file->contents == (void*)NOT_FOUND || file->contents == (void*)NAME_TOO_LONG){
         free(file->name);
         free(file);
         return file->contents;
@@ -107,20 +107,20 @@ FILE* open(const char* path){
 }
 void close(FILE* file){
     //if(!file) return;
-    syscall(SYSCALL_WRITE, file->name, file->contents, file->size);
+    syscall(SYSCALL_WRITE, (uint32_t)file->name, (uint32_t)file->contents, file->size);
     free(file->name);
     free(file->contents);
     free(file);
 }
 void write(FILE* file, void* buffer, size_t size){
-    if(!file || !buffer || size < 0) return;
+    if(!file || !buffer || size < 1) return;
 
-    strncpy(buffer, file->contents, size);
+    strncpy((char*)buffer, (char*)file->contents, size);
     file->size = size;
 }
 void flushFile(FILE* file){
     if(!file) return;
-    syscall(SYSCALL_WRITE, file->name, file->contents, file->size);
+    syscall(SYSCALL_WRITE, (uint32_t)file->name, (uint32_t)file->contents, file->size);
 }
 void exit(int code){
     syscall(SYSCALL_EXIT, code, NULL, NULL);

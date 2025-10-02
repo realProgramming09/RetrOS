@@ -10,50 +10,50 @@ void handleSyscall(uint32_t* number, uint32_t* param1, uint32_t* param2, uint32_
 
     switch(*number){
         case SYSCALL_MALLOC : {
-            *number = genericAlloc(*param1);
+            *number = (uint32_t)genericAlloc((size_t)*param1);
             break;
         }
         case SYSCALL_FREE : {
-            genericFree(*param1);
+            genericFree((void*)*param1);
             break;
         }
         case SYSCALL_REALLOC : {
-            *number = genericRealloc(*param1, *param2);
+            *number = (uint32_t)genericRealloc((void*)*param1, (size_t)*param2);
             break;
         }
         case SYSCALL_PRINT : {
-            print(*param2, *param1);
+            print((DataType)*param2, (void*)*param1);
             *number = 0;
             break;
         }
         case SYSCALL_GETCHAR : {
-            *number = getChar();
+            *number = (uint32_t)getChar();
             break;
         }
         case SYSCALL_SCAN : {
-            scanTerminal(*param1, *param2);
+            scanTerminal((uint8_t*)*param1, (size_t)*param2);
             break;
         }
         case SYSCALL_OPEN : {
-            String* path = new(*param2);
+            String* path = new((char*)*param2);
             
             //Aprire il file al percorso richiesto
             newFile(path);
             File_t* f = openFile(path);
             
             //Gestione errori
-            if(f == INVALID_PATH || f == NOT_FOUND || f == NAME_TOO_LONG){
-                *number = f;
+            if(f == (File_t*)INVALID_PATH || f == (File_t*)NOT_FOUND || f == (File_t*)NAME_TOO_LONG){
+                *number = (uint32_t)f;
                 unloadString(path);
                 return;
             }
 
             //Mettere nei registri i dati del file_t
-            *number = f->contents;
-            **(uint32_t**)param1 = f->size;
+            *number = (uint32_t)f->contents;
+            **(uint32_t**)param1 = (uint32_t)f->size;
             
             char* name = strPointer(path);
-            strncpy(name, *param2, strlen(name));
+            strncpy(name, (char*)*param2, strlen(name));
             genericFree(name);
 
             unloadString(f->name);
@@ -63,9 +63,9 @@ void handleSyscall(uint32_t* number, uint32_t* param1, uint32_t* param2, uint32_
             break;
         }
         case SYSCALL_WRITE : {
-            String* path = new(*param1);
+            String* path = new((char*)*param1);
             File_t* f = openFile(path);
-            writeToFile(f, *param2, *param3);
+            writeToFile(f, (void*)*param2, (size_t)*param3);
             closeFile(f);
             unloadString(path);
             break;
@@ -75,7 +75,7 @@ void handleSyscall(uint32_t* number, uint32_t* param1, uint32_t* param2, uint32_
             break;
         }
         case SYSCALL_WRITECOM : {
-            sendCOM(*param1, *param2, *param3);
+            sendCOM(*param1, (uint8_t*)*param2, (size_t)*param3);
             break;
         }
     }

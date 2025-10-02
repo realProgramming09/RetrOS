@@ -77,7 +77,7 @@ void terminalInit(){
     terminal = (Terminal_t){ //Impostare il terminale
         .color = 0x0F,
         .cursorPosition = 0,
-        .frameBuffer = VGA_TEXT_ADDRESS,
+        .frameBuffer = (uint16_t*)VGA_TEXT_ADDRESS,
         .lineNumber = 0,
     };
     clearTerminal(); //Pulire il terminale
@@ -119,10 +119,10 @@ void scanTerminal(uint8_t* buffer, size_t size){
     if(!buffer || size < 1) return;
 
     //Pulire il buffer
-    for(int i = 0; i < size; i++) buffer[i] = 0;
+    for(size_t i = 0; i < size; i++) buffer[i] = 0;
 
    
-    int lastChar = 0; //Indice dell'ultimo carattere
+    size_t lastChar = 0; //Indice dell'ultimo carattere
     int startX = charX; //Posizione iniziale dalla quale accettare input da tastiera
    
     moveCursor(charX, terminal.lineNumber);

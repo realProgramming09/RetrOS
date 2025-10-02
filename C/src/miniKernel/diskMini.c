@@ -47,6 +47,4 @@ uint16_t* readSectors(uint32_t sectorStart, uint8_t count){
     
     return sectorBuffer;
 }
-void writeSector(uint32_t sectorStart, uint16_t* data, size_t size){
-     
-}
+ 

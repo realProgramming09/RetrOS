@@ -26,5 +26,5 @@ extern uint32_t head, tail, timePassed, isListening;
 
 int serialInit(uint32_t ID, uint16_t divisor); //Imposta un divisore per il baud rate
 void sendCOM(uint32_t ID, uint8_t* data, size_t size); //Manda dati via seriale
-int listenCOM(uint32_t ID, uint32_t timeout); //Ascolta per una connessione via seriale
+int listenCOM(uint32_t timeout); //Ascolta per una connessione via seriale
 void recCOM(uint32_t ID, uint8_t* data, size_t size); //Legge dal buffer circolare della seriale

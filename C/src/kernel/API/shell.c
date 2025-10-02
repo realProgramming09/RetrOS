@@ -101,7 +101,7 @@ void launchShell(){
 
         //Memorizzare l'input da tastiera e metterlo nel buffer
         char input[64];
-        scanTerminal(input, 64);
+        scanTerminal((uint8_t*)input, 64);
 
         if(input[0] == '\0') continue;
 
@@ -279,13 +279,13 @@ void cd(String* input){
     
 
     //Gestione errori
-    if(currentFolder == INVALID_PATH) println(STRING_IMMEDIATE, "Invalid path.\0");
-    else if(currentFolder == NOT_FOUND) println(STRING_IMMEDIATE, "Specified folder does not exist.\0");
-    else if(currentFolder == NAME_TOO_LONG) println(STRING_IMMEDIATE, "Directory name is too long. Max 8 chars + 3 chars.\0");
+    if(currentFolder == (Folder_t*)INVALID_PATH) println(STRING_IMMEDIATE, "Invalid path.\0");
+    else if(currentFolder == (Folder_t*)NOT_FOUND) println(STRING_IMMEDIATE, "Specified folder does not exist.\0");
+    else if(currentFolder == (Folder_t*)NAME_TOO_LONG) println(STRING_IMMEDIATE, "Directory name is too long. Max 8 chars + 3 chars.\0");
     else {
         for(int i = 0; currentFolder->entries[i].name[0] != 0; i++){ 
             if((uint8_t)currentFolder->entries[i].name[0] == FREE_ENTRY) continue;
-            if(!compareImmediate(name, currentFolder->entries[i].name, NAME_SIZE) && currentFolder->entries[i].attributes == 0x10){
+            if(!compareImmediate(name, (char*)currentFolder->entries[i].name, NAME_SIZE) && currentFolder->entries[i].attributes == 0x10){
                 if(charAt(shellPath, 0) != '\0') append(shellPath, '/'); //Aggiornare il percorso del terminale: abbiamo trovato la cartella che cercavamo 
                 concatStrings(shellPath, name);            
                 
@@ -432,7 +432,7 @@ void shutDown(String* input){
     asm volatile("hlt"); //Il processore si incastra in un loop dal quale non può uscire. 
 }
 void help(String* input){
-    int colors[2] = {YELLOW,getTerminalColor};
+    int colors[2] = {YELLOW, (int)getTerminalColor()};
     char* messages[] = { //Messaggi di aiuto
         "echo [STRING] \0","- print something\n\0",
         "ls \0","- displays current directory contents\n\0",
@@ -462,7 +462,7 @@ void help(String* input){
    
 }
 void suicideNow(String* input){
-    panic(SUICIDE) //Si uccide
+    panic(SUICIDE); //Si uccide
 }
 void cat(String* input){
     StringArray* tokens = split(input, ' ');
@@ -481,6 +481,7 @@ void cat(String* input){
     switch((uint32_t)file->contents){
         case INVALID_PATH:
             println(STRING_IMMEDIATE, "Invalid path.\0");
+            break;
         case NOT_FOUND:
             println(STRING_IMMEDIATE, "The specified file does not exist.\0");
             break;
@@ -512,9 +513,9 @@ void writeCommand(String* input){
     File_t* file = openFile(fullPath); //Ottenere il percorso completo
     
     //Gestione errori
-    if(file == INVALID_PATH) println(STRING_IMMEDIATE, "Invalid path.\0");
-    else if(file == NOT_FOUND) println(STRING_IMMEDIATE, "File does not exist.\0");
-    else if(file == NAME_TOO_LONG) println(STRING_IMMEDIATE, "File name is too long. Max 8 chars + 3 chars.\0");
+    if(file == (File_t*)INVALID_PATH) println(STRING_IMMEDIATE, "Invalid path.\0");
+    else if(file == (File_t*)NOT_FOUND) println(STRING_IMMEDIATE, "File does not exist.\0");
+    else if(file == (File_t*)NAME_TOO_LONG) println(STRING_IMMEDIATE, "File name is too long. Max 8 chars + 3 chars.\0");
     else {
         //Scrivere il file
         char* ptr = strPointer(tokens->data[2]);
@@ -542,10 +543,10 @@ void cp(String* input){
 
     //Aprire il primo file
     File_t* first = openFile(firstPath);
-    if(first == INVALID_PATH || first == NOT_FOUND || first == NAME_TOO_LONG){ //Gestione errori
-        if(first == INVALID_PATH) println(STRING_IMMEDIATE, "Invalid first path.\0");
-        else if(first == NOT_FOUND) println(STRING_IMMEDIATE, "First file does not exist.\0");
-        else if(first == NAME_TOO_LONG) println(STRING_IMMEDIATE, "First file name is too long. Max 8 chars + 3 chars.\0");
+    if(first == (File_t*)INVALID_PATH || first == (File_t*)NOT_FOUND || first == (File_t*)NAME_TOO_LONG){ //Gestione errori
+        if(first == (File_t*)INVALID_PATH) println(STRING_IMMEDIATE, "Invalid first path.\0");
+        else if(first == (File_t*)NOT_FOUND) println(STRING_IMMEDIATE, "First file does not exist.\0");
+        else if(first == (File_t*)NAME_TOO_LONG) println(STRING_IMMEDIATE, "First file name is too long. Max 8 chars + 3 chars.\0");
 
         //Scaricare la RAM e liberare il terminale
         unloadString(firstPath);
@@ -559,10 +560,10 @@ void cp(String* input){
     //Provare a creare un secondo file o aprire il file se esiste già
     newFile(secondPath); //Se esiste non succede nulla
     File_t* second = openFile(secondPath);
-    if(second == INVALID_PATH || second == NOT_FOUND || second == NAME_TOO_LONG){ //Gestione errori
-        if(second == INVALID_PATH) println(STRING_IMMEDIATE, "Invalid second path.\0");
-        else if(second == NOT_FOUND) println(STRING_IMMEDIATE, "First file does not exist.\0");
-        else if(second == NAME_TOO_LONG) println(STRING_IMMEDIATE, "First file name is too long. Max 8 chars + 3 chars.\0");
+    if(second == (File_t*)INVALID_PATH || second == (File_t*)NOT_FOUND || second == (File_t*)NAME_TOO_LONG){ //Gestione errori
+        if(second == (File_t*)INVALID_PATH) println(STRING_IMMEDIATE, "Invalid second path.\0");
+        else if(second == (File_t*)NOT_FOUND) println(STRING_IMMEDIATE, "First file does not exist.\0");
+        else if(second == (File_t*)NAME_TOO_LONG) println(STRING_IMMEDIATE, "First file name is too long. Max 8 chars + 3 chars.\0");
 
         //Scaricare la RAM e liberare il terminale
         unloadString(firstPath);
@@ -597,9 +598,9 @@ void run(String* input){
     File_t* binary = openFile(fullPath);
     
     //Gestione errori
-    if(binary == INVALID_PATH) println(STRING_IMMEDIATE, "Invalid path.\0");
-    else if(binary == NOT_FOUND) println(STRING_IMMEDIATE, "File not found.\0");
-    else if(binary == NAME_TOO_LONG) println(STRING_IMMEDIATE, "File name is too long. Max 8 + 3 characters.\0");
+    if(binary == (File_t*)INVALID_PATH) println(STRING_IMMEDIATE, "Invalid path.\0");
+    else if(binary == (File_t*)NOT_FOUND) println(STRING_IMMEDIATE, "File not found.\0");
+    else if(binary == (File_t*)NAME_TOO_LONG) println(STRING_IMMEDIATE, "File name is too long. Max 8 + 3 characters.\0");
 
     //Tratta il file come una funzione e saltaci
     ((void (*)())(binary->contents))(); 
@@ -625,28 +626,31 @@ void load(String* input){
     uint32_t leadSignature = 0, fileSize = 0, trailSignature = 0;
 
     //Macro locale per semplificare la gestione errori
-    #define VALIDATE(cond, message) \
-    if(cond){ \
-        println(STRING_IMMEDIATE, message); \
-        if(isFileCreated) deleteFile(file->path); \ 
-        closeFile(file); \
-        unloadString(fullPath); \
-        unloadArray(tokens); \
-        return; \
-    } \
+    #define VALIDATE(cond, message)\
+    if(cond){\
+        println(STRING_IMMEDIATE, message);\
+        if(isFileCreated){\
+            deleteFile(file->path);\
+        }\
+        closeFile(file);\
+        unloadString(fullPath);\
+        unloadArray(tokens);\
+        return;\
+    }\
 
     //Mettersi in ascolto sulla COM
-    int serialError = listenCOM(COM1, 5000);
+    int serialError = listenCOM(5000);
     VALIDATE(serialError, "Timeout.\0")
     
     //Leggere la firma iniziale
-    recCOM(COM1, &leadSignature, sizeof(uint32_t));
+    recCOM(COM1, (uint8_t*)&leadSignature, sizeof(uint32_t));
     VALIDATE(leadSignature != 0xD72A90B1, "Invalid format: missing front signature.\0")
 
     println(STRING_IMMEDIATE, "I got something! Writing to file...\0");
+     
     
     //Leggere la dimensione 
-    recCOM(COM1, &fileSize, sizeof(uint32_t));
+    recCOM(COM1, (uint8_t*)&fileSize, sizeof(uint32_t));
     VALIDATE(fileSize == 0, "Invalid format: invalid size.\0")
 
     //Leggere i contenuti
@@ -654,7 +658,7 @@ void load(String* input){
 
     //Leggere la firma finale
     print(STRING_IMMEDIATE, "Validating...\n\0");
-    recCOM(COM1, &trailSignature, sizeof(uint32_t));
+    recCOM(COM1, (uint8_t*)&trailSignature, sizeof(uint32_t));
     VALIDATE(trailSignature != 0x738F3C42 && trailSignature > 0, "Invalid format: wrong tail signature.\0")
 
     //Scrivere il file

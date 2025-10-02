@@ -25,7 +25,7 @@ struct E820Entry{
 typedef struct SegmentHeader{
     uint8_t* base; //Indirizzo iniziale dell'area allocata
     uint32_t segmentCount; //Quanti segmenti l'area copre
-}SegmentHeader_t;__attribute__((packed));
+}__attribute__((packed)) SegmentHeader_t;
 
 MMU_t initialMMU;
 static MMU_t* state;
@@ -57,7 +57,7 @@ void* MMUAlloc(MMU_t* local, size_t size){
             if(!(local->segmentBitmap[i] & ((uint32_t)1 << j))){
                 if(!base){ //Il primo segmento libero che incontriamo, impostiamone l'indirizzo assoluto in un puntatore
                     uint16_t segNumber = i * BITMAP_ENTRY_SIZE + j;
-                    base = RAM_START_ADDR + segNumber * SEG_SIZE;
+                    base = (uint8_t*)(RAM_START_ADDR + segNumber * SEG_SIZE);
                 }
                 remaining--;
             }
@@ -105,7 +105,7 @@ uint32_t detectRam(void){
     
     
     uint32_t totalCapacity = 0;
-    struct E820Entry* table = E820_ADDR; //Ottenere la tavola della RAM dall'indirizzo del bootloader
+    struct E820Entry* table = (struct E820Entry*)E820_ADDR; //Ottenere la tavola della RAM dall'indirizzo del bootloader
     uint8_t counter = *(uint8_t*)E820_COUNT_ADDR; 
 
     //Traversarla e segnare ogni segmento utile 
@@ -120,9 +120,7 @@ uint32_t detectRam(void){
     
 
 }
-MMU_t* mmuInit(){    
-     
-}
+ 
 void loadMMU(MMU_t* m){
     initialMMU = (MMU_t){
         .capacity = m->capacity,
@@ -139,10 +137,10 @@ void loadMMU(MMU_t* m){
     state->capacity = initialMMU.capacity;
     state->freeAmount = initialMMU.freeAmount;
     state->segmentBitmap = segmentBitmap;
-    initialAddress = &state;
+    initialAddress = (uint32_t)&state;
 
     //Impostare la regione dove si trova state come occupata sennò si sovrascrive
-    uint32_t stateAddr = &state;
+    uint32_t stateAddr = initialAddress;
     int segAbsNumber = (stateAddr - RAM_START_ADDR) / SEG_SIZE;
     state->segmentBitmap[segAbsNumber / BITMAP_ENTRY_SIZE] |= ((uint32_t)1 << segAbsNumber % BITMAP_ENTRY_SIZE); //Impostare il segmento dove si trova a 1 
      
@@ -152,8 +150,8 @@ void* genericAlloc(size_t size){
     if(!state->capacity){
         panic(MMU_OVERWRITE);
     }
-    else if(initialAddress != &state){
-        panic(MMU_CORRUPTION)
+    else if(initialAddress != (uint32_t)&state){
+        panic(MMU_CORRUPTION);
     }
     
 
@@ -178,7 +176,7 @@ void* genericAlloc(size_t size){
             if(!(state->segmentBitmap[i] & ((uint32_t)1 << j))){
                 if(!base){ //Il primo segmento libero che incontriamo, impostiamone l'indirizzo assoluto in un puntatore
                     uint16_t segNumber = i * BITMAP_ENTRY_SIZE + j;
-                    base = RAM_START_ADDR + segNumber * SEG_SIZE;
+                    base = (uint8_t*)(RAM_START_ADDR + segNumber * SEG_SIZE);
                 }
                 remaining--;
             }
@@ -191,7 +189,7 @@ void* genericAlloc(size_t size){
         if(found) break; //Uscire dal ciclo
     }
     if(remaining){//Non c'è spazio
-        panic(MALLOC_FAILED)
+        panic(MALLOC_FAILED);
     }; 
 
     //Creare l'header
@@ -227,8 +225,8 @@ void genericFree(void* ptr){
     if(!state->capacity){
         panic(MMU_OVERWRITE);
     }
-    else if(initialAddress != &state){
-        panic(MMU_CORRUPTION)
+    else if(initialAddress != (uint32_t)&state){
+        panic(MMU_CORRUPTION);
     }
     if(!ptr) return; //Il puntatore è nullo
     SegmentHeader_t header = *(SegmentHeader_t*)(ptr - sizeof(header)); //Ricavare l'header dall'area allocata
@@ -262,12 +260,12 @@ void* genericRealloc(void* ptr, size_t size){
     if(!state->capacity){
         panic(MMU_OVERWRITE);
     }
-    else if(initialAddress != &state){
-        panic(MMU_CORRUPTION)
+    else if(initialAddress != (uint32_t)&state){
+        panic(MMU_CORRUPTION);
     }
     void* newPtr = genericAlloc(size);
     if(!newPtr){
-        panic(MALLOC_FAILED)
+        panic(MALLOC_FAILED);
     }; 
     
     //Ottenere gli header delle due allocazioni
@@ -292,8 +290,8 @@ uint32_t getTotalRam(){
     if(!state->capacity){
         panic(MMU_OVERWRITE);
     }
-    else if(initialAddress != &state){
-        panic(MMU_CORRUPTION)
+    else if(initialAddress != (uint32_t)&state){
+        panic(MMU_CORRUPTION);
     }
     return state->capacity;
 }
@@ -301,8 +299,8 @@ uint32_t getFreeRam(){
     if(!state->capacity){
         panic(MMU_OVERWRITE);
     }
-    else if(initialAddress != &state){
-        panic(MMU_CORRUPTION)
+    else if(initialAddress != (uint32_t)&state){
+        panic(MMU_CORRUPTION);
     }
     return state->freeAmount;
 }
@@ -310,32 +308,31 @@ Page_t requestPage(){
     if(!state->capacity){
         panic(MMU_OVERWRITE);
     }
-    else if(initialAddress != &state){
-        panic(MMU_CORRUPTION)
+    else if(initialAddress != (uint32_t)&state){
+        panic(MMU_CORRUPTION);
     }
     int number = 0;
     for(; number < SEG_OFFSET_SIZE; number++){
         if(!state->segmentBitmap[number]){
             Page_t page = {
                 .pageNumber = number,
-                .base = number * BITMAP_ENTRY_SIZE * SEG_SIZE + RAM_START_ADDR, //L'indirizzo assoluto della pagina
+                .base = (void*)(number * BITMAP_ENTRY_SIZE * SEG_SIZE + RAM_START_ADDR), //L'indirizzo assoluto della pagina
             };
             state->segmentBitmap[number] = 0xFFFFFFFF;
             return page;
         }
     }
-    panic(MALLOC_FAILED)
+    panic(MALLOC_FAILED);
+    return (Page_t){0};
 }
 void freePage(Page_t* page){
     if(!state->capacity){
         panic(MMU_OVERWRITE);
     }
-    else if(initialAddress != &state){
-        panic(MMU_CORRUPTION)
+    else if(initialAddress != (uint32_t)&state){
+        panic(MMU_CORRUPTION);
     }
-    if(!state->capacity || initialAddress != &state){
-        panic(MMU_CORRUPTION)
-    }
+     
     state->segmentBitmap[page->pageNumber] = 0;
     page->base = NULL;
 }
