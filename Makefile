@@ -29,7 +29,7 @@ MINIKERNEL_C_FILES := $(wildcard C/src/miniKernel/*.c)
 MINIKERNEL_ASM_FILES := $(wildcard ASM/miniKernel/*.asm)
 BOOTLOADER_FILES := $(wildcard ASM/boot/*.asm) $(wildcard ASM/filesystem.asm)
 
-KERNEL_OBJ_FILES := $(patsubst C/src/kernel/%.c, obj/%.o,$(KERNEL_C_FILES)) $(patsubst ASM/kernel/%.asm, obj/ASM/%.o, $(KERNEL_ASM_FILES))
+KERNEL_OBJ_FILES := $(patsubst C/src/kernel/%.c, obj/%.o,$(KERNEL_C_FILES))
 MINIKERNEL_OBJ_FILES := $(patsubst C/src/miniKernel/%.c, obj/miniKernel/%.o,$(MINIKERNEL_C_FILES)) $(patsubst ASM/miniKernel/%.asm, obj/ASM/%.o, $(MINIKERNEL_ASM_FILES))
 
  
@@ -96,7 +96,7 @@ kernel: $(KERNEL_FILES)
 	$(CC) $(CC_FLAGS) -o obj/core/syscallHandler.o $(KERNEL_SRC_DIR)/core/syscallHandler.c -I "$(INCLUDE_DIR)"  
 	$(CC) $(CC_FLAGS) -o obj/API/shell.o $(KERNEL_SRC_DIR)/API/shell.c -I "$(INCLUDE_DIR)" -Wno-unused-parameter 
 	$(CC) $(CC_FLAGS) -o obj/user/kernelAPI.o $(KERNEL_SRC_DIR)/user/kernelAPI.c -I "$(INCLUDE_DIR)"  -Wno-discarded-qualifiers
-
+	$(CC) $(CC_FLAGS) -o obj/drivers/timer.o $(KERNEL_SRC_DIR)/drivers/timer.c -I "$(INCLUDE_DIR)"  
 miniKernel: 
 	mkdir -p obj obj/ASM obj/miniKernel
 	$(NASM) $(NASM_OBJ_FLAGS) -o obj/ASM/miniKernelASM.o ASM/miniKernel/miniKernelASM.asm
@@ -115,7 +115,7 @@ link: miniKernel kernel
 	$(LD) -Ttext 0x7C00 $(LD_FLAGS) -o elf/bootloader.elf obj/bootloader/bootloader.o 
 	$(LD) -Ttext 0x1000 $(LD_FLAGS) -o elf/real_mode.elf obj/bootloader/real_mode.o 
 	$(LD) -Ttext 0x2000 $(LD_FLAGS) -o elf/miniKernel.elf obj/miniKernel/miniKernel.o obj/miniKernel/diskMini.o obj/miniKernel/mmuMini.o obj/ASM/miniKernelASM.o
-	$(LD) -Ttext 0x100008 $(LD_FLAGS) -o elf/kernel.elf $(KERNEL_OBJ_FILES) 
+	$(LD) -Ttext 0x100008 $(LD_FLAGS) -o elf/kernel.elf obj/ASM/kernelASM.o $(KERNEL_OBJ_FILES) 
 	
 copy: bootloader link
 	$(OBJCOPY) $(OBJCOPY_FLAGS) elf/bootloader.elf bin/bootloader.bin

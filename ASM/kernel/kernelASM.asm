@@ -7,6 +7,7 @@ global recWord
 extern isrHandler
 extern idtInit
 extern main
+extern stepTimer
 
 ;Macro per l'ISR senza errori
 %macro ISR_NOERR 1 

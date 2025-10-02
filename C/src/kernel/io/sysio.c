@@ -39,7 +39,7 @@ void printc(char c){
 void prints(const String* s){ 
     char* ptr = strPointer(s);
     printToTerminal(ptr); //Qui è più diretta
-    genericFree(ptr);
+     
 }
 void printn(int32_t n){
     char invertedStr[12] = ""; //Buffer che conterrà n...al contrario

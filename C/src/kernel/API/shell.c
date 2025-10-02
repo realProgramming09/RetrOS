@@ -4,11 +4,13 @@
 #include "kernel/files.h"
 #include "kernel/serial.h"
 #include "kernel/bsod.h"
+#include "kernel/timer.h"
 
-#define COMMANDS_NUMBER 19
+#define COMMANDS_NUMBER 20
  
 static String* shellPath = NULL;
 
+void getTimer(String* input); //Print system timer's value
 void load(String* input); //Carica un file da seriale
 void run(String* input); //Lancia un .bin utente
 void cp(String* input); //Copia un file in un altro
@@ -64,7 +66,8 @@ void launchShell(){
         "write\0",
         "cp\0",
         "run\0",
-        "load\0"
+        "load\0",
+        "now\0"
     };
 
     //Lista di callback per ogni comando
@@ -87,7 +90,8 @@ void launchShell(){
         writeCommand,
         cp,
         run,
-        load
+        load,
+        getTimer
     };
     
     for(;;){
@@ -105,25 +109,19 @@ void launchShell(){
 
         if(input[0] == '\0') continue;
 
-        //Isolare il comando
-        String* command = newBuffer(16);
-        int length = strlen(input) > 16 ? 16 : strlen(input);
-        for(int j = 0; j< length; j++){
-            if(input[j] == ' ') break;
-            append(command, input[j]);
-        }
-
+         
         //Cercare nella lista di comandi quello giusto
         int found = 0;
         String* inputString = new(input);
-        for(int i = 0; i < 19;  i++){
-            if((found = !compareImmediate(command, commandList[i], strlen(commandList[i])))){
+        StringArray* tokens = split(inputString, ' ');
+        for(int i = 0; i < COMMANDS_NUMBER;  i++){
+            if((found = !compareImmediate(tokens->data[0], commandList[i], strlen(commandList[i])))){
                 callbackList[i](inputString); //Se l'abbiamo trovato, eseguire il comando
                 break;
             } 
         }
         if(!found) notFound(); //Se no, dare un messaggio di errore
-        unloadString(command);
+        unloadArray(tokens);
         unloadString(inputString);
         
     }
@@ -670,3 +668,7 @@ void load(String* input){
     unloadString(fullPath);
     unloadArray(tokens);
 }  
+void getTimer(String* input){
+    int timer = now();
+    println(INT, &timer);
+}

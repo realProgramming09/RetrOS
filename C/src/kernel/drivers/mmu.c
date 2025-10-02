@@ -204,7 +204,7 @@ void* genericAlloc(size_t size){
     uint16_t segOffset = segNumber % BITMAP_ENTRY_SIZE;  //Il numero del segmento relativo alla pagina
     
     for(int i = 0; i < segCount; i++){
-        if(segOffset ==   BITMAP_ENTRY_SIZE ) { //Abbiamo raggiunto un confine di pagina
+        if(segOffset ==  BITMAP_ENTRY_SIZE ) { //Abbiamo raggiunto un confine di pagina
             segOffset = 0;
             pageNumber++;
         }
