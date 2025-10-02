@@ -30,27 +30,28 @@ void launchBSOD(RegisterFrame frame, int code){
     char* desc[] = {
         "An unkown interrupt triggered by the CPU\0",
         "The MMU couldn't allocate RAM. Most likely system memory ran out.\0",
-        "The MMU got corrupted. Its internal pointer to RAM data got overwritten most\n likely by a bug\0",
+        "The MMU got corrupted. Its internal pointer to RAM data got overwritten most likely by a bug\0",
         "Maybe you decided that you couldn't take it anymore and ended your suffering.\0",
         "The filesystem got corrupted. Check the FAT and critical structures.\0",
-        "Couldn't read from disk. It indicates faulty sectors. If this happens often,\nconsider changing your HDD.\0",
-        "The MMU got corrupted. More specifically, while the bitmap that controls RAM\n is intact, data about memory capacity got overwritten, most likely by a bug.\0",
+        "Couldn't read from disk. It may indicate faulty sectors. If this happens often,\nconsider changing your HDD.\0",
+        "The MMU got corrupted. More specifically, while the bitmap that controls RAM\nis intact, data about memory capacity got overwritten, most likely by a bug.\0",
         "The serial port isn't working.\0"
     };
 
    
 
     println(STRING_IMMEDIATE, "UH OH. YOU JUST DIED :(\0");
-    println(STRING_IMMEDIATE, "ERROR CODE: \0");
+    print(STRING_IMMEDIATE, "ERROR CODE: \0");
     println(STRING_IMMEDIATE, codes[code]);
     
     println(STRING_IMMEDIATE, desc[code]);
+    print(CHAR, "\n");
      
 
 
     if(code != SUICIDE){
         
-        if(!frame.isrNumber) println(STRING_IMMEDIATE, "Critical bug/software error/non-essential component fault, not a CPU fault.\nTriggered on purpose bymyself when I noticed something was off.\n\0");
+        if(frame.isrNumber == 0x31) println(STRING_IMMEDIATE, "Critical bug/software error/non-essential component fault, not a CPU fault.\nTriggered on purpose bymyself when I noticed something was off.\n\n\0");
         else{
             printConcat("ISR NUMBER: ", &frame.isrNumber);
         }

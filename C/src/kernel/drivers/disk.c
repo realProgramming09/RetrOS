@@ -46,14 +46,13 @@ uint16_t* readSectors(uint32_t sectorStart, uint8_t count){
     
     diskSetup(sectorStart, count, MASTER, READ); //Impostare il disco principale per leggere 
 
-    uint8_t errors = 0;
+     
     uint16_t* sectorBuffer = genericAlloc(sizeof(uint16_t)*256 * count);
     for(uint8_t i = 0; i < count; i++){
         waitForDisk(); //Aspettiamo...
         for(uint16_t j = 0; j < 256; j++){
             sectorBuffer[256*i + j] = recWord(DATA);
-            errors = recByte(ERRORS);
-            if(errors){
+            if(recByte(ERRORS) && (recByte(STATUS) & 1)){ //Only one bit can be set at a time: guardrail against stack corruption
                 panic(DISK_ERROR);
             } 
             waitForDisk();

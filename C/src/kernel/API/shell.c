@@ -10,7 +10,7 @@
  
 static String* shellPath = NULL;
 
-void getTimer(String* input); //Print system timer's value
+void benchmark(String* input); //Print system timer's value
 void load(String* input); //Carica un file da seriale
 void run(String* input); //Lancia un .bin utente
 void cp(String* input); //Copia un file in un altro
@@ -67,7 +67,7 @@ void launchShell(){
         "cp\0",
         "run\0",
         "load\0",
-        "now\0"
+        "bench\0"
     };
 
     //Lista di callback per ogni comando
@@ -91,7 +91,7 @@ void launchShell(){
         cp,
         run,
         load,
-        getTimer
+        benchmark
     };
     
     for(;;){
@@ -668,7 +668,34 @@ void load(String* input){
     unloadString(fullPath);
     unloadArray(tokens);
 }  
-void getTimer(String* input){
-    int timer = now();
-    println(INT, &timer);
+void benchmark(String* input){
+    println(STRING_IMMEDIATE, "Inizio benchmark...\0");
+    
+    int start = now();
+    #define TESTS 1000000
+    for(int i = 0; i < TESTS; ++i){
+        float f = (float)now() / (float)i;
+        f *= (float)(i+4);
+    }
+    int end = now();
+
+    float delta = (float)(end - start);
+    uint8_t isSeconds = delta > 1000;
+    float FLOPS = (float)(TESTS * 2) / (delta / 1000);
+
+    println(STRING_IMMEDIATE, "Test completato.\0");
+    println(STRING_IMMEDIATE, "Consisteva in: 1M divisioni tra float.\0");
+    print(STRING_IMMEDIATE, "Tempo impiegato: ");
+    if(isSeconds){
+        delta /= 1000;
+        print(FLOAT, &delta);
+        println(STRING_IMMEDIATE, "s.");
+    }
+    else{
+        print(FLOAT, &delta);
+        println(STRING_IMMEDIATE, "ms.");
+    }
+    print(STRING_IMMEDIATE, "FLOPS: ");
+    println(FLOAT, &FLOPS);
+    
 }

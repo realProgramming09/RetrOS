@@ -36,15 +36,12 @@ uint16_t* readSectors(uint32_t sectorStart, uint8_t count){
     sendByte(SECTOR_COUNT, count);
     sendByte(STATUS, 0x20); //Leggere
 
-    uint8_t errors = 0;
+   
     uint16_t* sectorBuffer = genericAlloc(sizeof(uint16_t)*256 * count);
     for(uint8_t i = 0; i < count; i++){
         waitForDisk(); //Aspettiamo...
         for(uint16_t j = 0; j < 256; j ++){
             sectorBuffer[256*i + j] = recWord(DATA);
-            if((errors = recByte(ERRORS))){
-            
-            } 
         }
     }
     

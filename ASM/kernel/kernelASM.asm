@@ -56,7 +56,14 @@ ISR_NOERR 19
 ISR_NOERR 20
 ISR_ERROR 30
 ISR_NOERR 31
-ISR_NOERR 32
+global isr32
+
+isr32:
+    push dword 32
+    push dword 0 ;Nessun codice di errore, padding per avere un codice solo e non 300
+    
+    call stepTimer
+    jmp isr_main
 ISR_NOERR 33
 ISR_NOERR 34
 ISR_NOERR 35
