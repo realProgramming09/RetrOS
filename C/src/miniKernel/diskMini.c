@@ -12,11 +12,14 @@
 #define SECTOR_COUNT 0x1F2
 #define DRIVE_REG 0x1F6
  
+/* THIS FILE IS IDENTICAL TO disk.c BUT IMPLEMENTS ONLY THE NECESSARY FUNCTIONS TO READ THE KERNEL FROM DISK IN 32bit*/
+/* SO I WON'T TRANSLATE THE COMMENTS INTO ENGLISH */
+
 void waitForDisk(){
     uint8_t status;
     do{
-        status = recByte(STATUS); //Leggiamo il registro status
-    } while(status & 0x80 && !(status & 0x08)); //Finché i bit 7 e 3 sono settati, tocca aspettare
+        status = recByte(STATUS); //Read the status register
+    } while(status & 0x80 && !(status & 0x08)); //While bits 7 and 3 ar
 }
 
 uint16_t* readSectors(uint32_t sectorStart, uint8_t count){

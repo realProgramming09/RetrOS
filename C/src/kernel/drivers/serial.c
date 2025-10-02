@@ -4,11 +4,11 @@
 
 
 
-//Macro per aspettare l'hardware
+//Macro to wait for hardware
 #define sendWait while((recByte(ID + LINE_CONTROL_OFFSET) & 0x01) == 0)
 #define recWait while((recByte(ID + LINE_CONTROL_OFFSET) & 0x20) == 0 || head == tail)
 
-#define TIMEOUT 100 //Timeout per la connessione
+#define TIMEOUT 100 //Timeout after a connection is established
 
 
 uint8_t serialBuffer[BUFFER_SIZE];
@@ -20,23 +20,22 @@ static inline int abs(int x){
     return x > 0 ? x : -x;
 }
 int serialInit(uint32_t ID, uint16_t divisor){
-    if(!divisor) return 1; //Abbiamo solo due porte e non puoi dividere per 0
+    if(!divisor) return 1; //You can't divide by 0
     
-    //Impostare il DLAB e mandare il divisore un byte per volta
+    //Set the DLAB and send the divisor a byte at a time
     sendByte(ID + LINE_CONTROL_OFFSET, 0x80);
     sendByte(ID + DIVISOR_LOW_OFFSET, divisor & 0xFF);
     sendByte(ID + DIVISOR_HIGH_OFFSET, (divisor >> 8) & 0xFF);
-    sendByte(ID + LINE_CONTROL_OFFSET, 0); //Pulire il DLAB!
+    sendByte(ID + LINE_CONTROL_OFFSET, 0); //Clean the DLAB!
     
-    //Impostare la modalità di trasferimento: 8byte alla volta, no parity, 1bit di intermezzo 
+    //Set line mode: 8N1 (8bytes, 1 stop bit, no parit7)
     sendByte(ID + LINE_CONTROL_OFFSET, 0x03);
 
-    //Attivare le interrupt
-    sendByte(ID + FIFO_CONTROL_OFFSET, 0x87); //Abilitare il buffer FIFO
-    
+    //Enable interrupts
+    sendByte(ID + FIFO_CONTROL_OFFSET, 0x87); //Enable FIFO buffer
     sendByte(ID + MODEM_CONTROL_OFFSET, 0x1B); //Loopback mode
     
-    //Piccolo test
+    //Small test: if what ew receive isn't what we sent, the port is faulty
     sendByte(ID+WRITEBUFFER_OFFSET, 0xDD);
     if(recByte(ID + READBUFFER_OFFSET) != 0xDD) return 1;
 
@@ -47,41 +46,41 @@ int serialInit(uint32_t ID, uint16_t divisor){
      
 }
 void sendCOM(uint32_t ID, uint8_t* data, size_t size){
-    if(!data || size < 1) return; //Gestione errori
+    if(!data || size < 1) return; //Error checking
 
     for(int i = 0; i < size; i++){
-        sendWait; //Aspettare di poter mandare qualcosa
+        sendWait; //Wait before sending data
         sendByte(ID + WRITEBUFFER_OFFSET, data[i]);
     }
 }
 void recCOM(uint32_t ID, uint8_t* data, size_t size){
-    if(!data || size < 1) return; //Gestione errori
+    if(!data || size < 1) return; //Error checking
     recWait;
-    asm volatile("cli"); //Non vogliamo essere disturbati a manipolare un buffer critico
+    asm volatile("cli"); //We don't wanna be disturbed while working with critical data
 
     
-    uint32_t length = tail-head; //Lunghezza della fila
+    uint32_t length = tail-head; //Queue length
 
-    //Scorrere il buffer circolare e copiare i byte necessari
+    //Loop the circular buffer and copy data, popping as we go
     for(int i = 0; i < length && i < size; i++){
         data[i] = serialBuffer[(head++) % BUFFER_SIZE];
     }
 
 
-    asm volatile("sti");
+    asm volatile("sti"); //Re-enable interrupts
 
 
    
 }
 int listenCOM(uint32_t timeout){
-    head = 0, tail = 0, timePassed = 0; //Reimpostare il buffer circolare e il timeout counter
+    head = 0, tail = 0, timePassed = 0; //Reset the circular buffer and the timeout counter
 
-    //Ascoltare fino al timeout
+    //Listern until timeout
     isListening = 1; 
     while(timePassed < timeout){
-        if(tail > 0) timeout = TIMEOUT; //Se abbiamo ricevuto abbassare il timeout a 100ms
+        if(tail > 0) timeout = TIMEOUT; //If we received something lower the timeout to 100ms
     }
     isListening = 0;
 
-    return !tail; //0 se successo, 1 se fallito
+    return !tail; //0 if all right, 1 otherwise
 }

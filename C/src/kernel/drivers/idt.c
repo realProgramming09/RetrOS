@@ -57,7 +57,7 @@ extern void isr47();
 extern void isr48();
 extern void isr49();
 extern void isr50();
-void isrNothing(){}; //ISR per interrupt non mappati
+void isrNothing(){}; //ISR for non-mapped interrupts
 
 ;
 uint32_t nullValue = 0;
@@ -76,22 +76,22 @@ void (*isrFunctions[])() = {
 };
 
 struct IDT{
-    uint16_t limit; //Dimensione
-    uint32_t base; //Indirizzo
+    uint16_t limit; //Size
+    uint32_t base; //Starting address
 }__attribute__((packed));
 
 struct IDTEntry{
-    uint16_t offsetLow; //Primi 2 byte dell'indirizzo dell'ISR
-    uint16_t segment; //Segmento del GDT
+    uint16_t offsetLow; //First 16bits of the ISR's address
+    uint16_t segment; //GDT code segment
     uint8_t reserved; //0
-    uint8_t flags; //Flag vari
-    uint16_t offsetHigh; //Ultimi 2 byte dell'indirizzo dell'ISR
+    uint8_t flags; //Flags
+    uint16_t offsetHigh; //Last 16 bits of the ISR's address
 }__attribute__((packed));
 
 struct ISRFrame{
-    uint32_t edi, esi, ebp, esp, ebx, edx, ecx, eax; //Registri
-    uint32_t  errorCode, isrNumber; //Numero ISR e codice errore
-    uint32_t eip, cs, eflags; //Valori che la CPU mette sullo stack
+    uint32_t edi, esi, ebp, esp, ebx, edx, ecx, eax; //Registers
+    uint32_t  errorCode, isrNumber; //ISR number and error code
+    uint32_t eip, cs, eflags; //Values pushed automatically onto the stack
 }__attribute__((packed));
 
 struct IDTEntry table[50];
@@ -113,16 +113,16 @@ RegisterFrame createFrame(struct ISRFrame* f){
     return frame;
 }
 void fillEntry(struct IDTEntry* entry, void (*isr)(), uint8_t flags){
-    //Impostare la entry
+    //Set the entry
     uint32_t addr = (uint32_t)isr;
-    entry->offsetLow = addr & 0xFFFF; //Primi 2 byte della posizione dell'isr
-    entry->segment = 0x08; //Code segment
+    entry->offsetLow = addr & 0xFFFF; //First 16bits of the ISR's address
+    entry->segment = 0x08; //GDT code segment
     entry->reserved = 0;
-    entry->flags = flags;
-    entry->offsetHigh = (addr >> 16) & 0xFFFF; //Ultimi 4 byte della posizione dell'isr
+    entry->flags = flags; //Flags
+    entry->offsetHigh = (addr >> 16) & 0xFFFF; //Last 16 bits of the ISR's address
 }
 void sendEOI(int isrNumber){
-    if(isrNumber >= 32 && isrNumber <= 48){
+    if(isrNumber >= 32 && isrNumber <= 48){ //Send the EOI only for IRQs
         if(isrNumber >= 40) sendByte(0xA0, 0x20);
         sendByte(0x20, 0x20);
     }
@@ -131,11 +131,13 @@ void sendEOI(int isrNumber){
 
 
 void idtInit(){
+
+    //Fill the IDT
     for(int i = 0; i < 48; i++){
         fillEntry(&table[i], isrFunctions[i], 0x8E);
     }
-    fillEntry(&table[48], isrFunctions[48], 0xEE);
-    fillEntry(&table[49], isrFunctions[49], 0xEE);
+    fillEntry(&table[48], isrFunctions[48], 0xEE); //Syscall
+    fillEntry(&table[49], isrFunctions[49], 0xEE); //BSOD-specific int
 
     struct IDT idt = {
         .limit = (uint16_t)sizeof(table)-1,
@@ -144,27 +146,27 @@ void idtInit(){
 
     loadIDT((struct IDT*)&idt);
 
-    //Inizializzare il PIC per le IRQ
+    //Inizialize the PICs
     sendByte(0x20, 0x11);
     sendByte(0xA0, 0x11);
 
-    //Mapparli
+    //Set them up
     sendByte(0x21, 0x20);
     sendByte(0xA1, 0x28);
 
-    //Connetterli
+    //Connect them up
     sendByte(0x21, 4);
     sendByte(0xA1, 2);
 
-    //Impostare la modalità a 32bit
+    //Set 32bit mode
     sendByte(0x21, 1);
     sendByte(0xA1, 1);
 
-    //Imposta le IRQ da attivare
+    //Set which IRQs to activate: PIT, keyboard, COM1/2
     sendByte(0x21, 0xE0);
     sendByte(0xA1, 0xFF);
 
-    //Imposta il PIT
+    //Setup the PIT every 1ms
     uint16_t res = 1193;
     sendByte(0x43, 0x36);
     sendByte(0x40, res & 0xF);
@@ -177,27 +179,27 @@ void isrHandler(struct ISRFrame* frame){
     switch(frame->isrNumber){
          
         case PIT_FIRE:{
-            if(isListening) timePassed++;
+            if(isListening) timePassed++; //Increment serial timeout counter
             break;
         }
         case KEYBOARD_PRESS: { 
-            currentKeyPressed = recByte(0x60);
+            currentKeyPressed = recByte(0x60); //Read from keyboard
             break;
         }
         case SYSCALL: {
-            sendEOI(frame->isrNumber); //La syscall userà le IRQ
-            asm volatile("sti"); //Riattiviamo le interrupt
+            sendEOI(frame->isrNumber); //Syscall are gonna use IRQs, re-enable them
+            asm volatile("sti"); 
             handleSyscall(&frame->eax, &frame->ebx, &frame->ecx, &frame->edx);
             break;
         }
         case COM1_RECEIVED: {
-            while((recByte(COM1+LINE_STATUS_OFFSET) & 1) != 0) serialBuffer[(tail++) % BUFFER_SIZE] = recByte(COM1); 
+            while((recByte(COM1+LINE_STATUS_OFFSET) & 1) != 0) serialBuffer[(tail++) % BUFFER_SIZE] = recByte(COM1); //Read from COM1 and append onto the buffer
             timePassed = 0;
             
             break;
         }
         case COM2_RECEIVED: {
-            while((recByte(COM2+LINE_STATUS_OFFSET) & 1) != 0) serialBuffer[(tail++) % BUFFER_SIZE] = recByte(COM1); 
+            while((recByte(COM2+LINE_STATUS_OFFSET) & 1) != 0) serialBuffer[(tail++) % BUFFER_SIZE] = recByte(COM1); //Read from COM2 and append onto the buffer
             timePassed = 0;
             break;
         }  
@@ -212,7 +214,7 @@ void isrHandler(struct ISRFrame* frame){
     }
     
 
-    //Se è un IRQ, dire al PIC che siamo pronti per riceverne un altro
+    //Send an EOI to the PIC: we're ready for another IRQ
     sendEOI(frame->isrNumber);
 
     

@@ -55,7 +55,7 @@ void launchBSOD(RegisterFrame frame, int code){
             printConcat("ISR NUMBER: ", &frame.isrNumber);
         }
         
-        //Stampa i registri
+        //Prints registers
         printConcat("EAX: ", &frame.eax);
         printConcat("EBX: ", &frame.ebx);         
         printConcat("ECX: ", &frame.ecx);         

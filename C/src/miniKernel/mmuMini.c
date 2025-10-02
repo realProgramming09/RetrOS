@@ -11,6 +11,9 @@
 #define SEG_OFFSET_SIZE 0x10000
 #define RAM_START_ADDR 0x100000
 
+/* THIS FILE IS THE EXACT SAME AS mmu.c, BUT IT IMPLEMENTS ONLY THE NECESSARY FUNCTIONS TO LOAD THE KERNEL INTO RAM */
+/* I WON'T TRANSLATE THIS COMMENTS INTO ENGLISH */
+
 struct E820Entry{
     uint64_t baseAddr; //Indirizzo del segmento
     uint64_t length; //Lunghezza del segmento
