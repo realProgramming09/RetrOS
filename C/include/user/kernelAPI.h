@@ -21,7 +21,7 @@ typedef struct FILE{
     size_t size; //Dimensione del file
 }FILE;
 
-uint32_t syscall(uint32_t syscallNumber, uint32_t param1, uint32_t param2, uint32_t param3); //Imposta i registri e lancia l'interrupt
+uint32_t syscall(uint32_t eax, uint32_t ebx, uint32_t ecx, uint32_t edx); //Imposta i registri e lancia l'interrupt
 
 void* malloc(size_t size); //Alloca RAM
 void free(void* ptr); //Libera RAM

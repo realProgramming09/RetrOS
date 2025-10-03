@@ -5,37 +5,37 @@
 #include "kernel/sysio.h"
 #include "kernel/serial.h"
 
-void handleSyscall(uint32_t* number, uint32_t* param1, uint32_t* param2, uint32_t* param3){
-    if(!number || !param1 || !param2 || !param3) return;
+void handleSyscall(uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* edx){
+    if(!eax || !ebx || !ecx || !edx) return;
 
-    switch(*number){
+    switch(*eax){
         case SYSCALL_MALLOC : {
-            *number = (uint32_t)genericAlloc((size_t)*param1);
+            *eax = (uint32_t)genericAlloc((size_t)*ebx);
             break;
         }
         case SYSCALL_FREE : {
-            genericFree((void*)*param1);
+            genericFree((void*)*ebx);
             break;
         }
         case SYSCALL_REALLOC : {
-            *number = (uint32_t)genericRealloc((void*)*param1, (size_t)*param2);
+            *eax = (uint32_t)genericRealloc((void*)*ebx, (size_t)*ecx);
             break;
         }
         case SYSCALL_PRINT : {
-            print((DataType)*param2, (void*)*param1);
-            *number = 0;
+            print((DataType)*ecx, (void*)*ebx);
+            *eax = 0;
             break;
         }
         case SYSCALL_GETCHAR : {
-            *number = (uint32_t)getChar();
+            *eax = (uint32_t)getChar();
             break;
         }
         case SYSCALL_SCAN : {
-            scanTerminal((uint8_t*)*param1, (size_t)*param2);
+            scanTerminal((uint8_t*)*ebx, (size_t)*ecx);
             break;
         }
         case SYSCALL_OPEN : {
-            String* path = new((char*)*param2);
+            String* path = new((char*)*ecx);
             
             //Aprire il file al percorso richiesto
             newFile(path);
@@ -43,17 +43,17 @@ void handleSyscall(uint32_t* number, uint32_t* param1, uint32_t* param2, uint32_
             
             //Gestione errori
             if(f == (File_t*)INVALID_PATH || f == (File_t*)NOT_FOUND || f == (File_t*)NAME_TOO_LONG){
-                *number = (uint32_t)f;
+                *eax = (uint32_t)f;
                 unloadString(path);
                 return;
             }
 
             //Mettere nei registri i dati del file_t
-            *number = (uint32_t)f->contents;
-            **(uint32_t**)param1 = (uint32_t)f->size;
+            *eax = (uint32_t)f->contents;
+            **(uint32_t**)ebx = (uint32_t)f->size;
             
             char* name = strPointer(path);
-            strncpy(name, (char*)*param2, strlen(name));
+            strncpy(name, (char*)*ecx, strlen(name));
             genericFree(name);
 
             unloadString(f->name);
@@ -63,9 +63,9 @@ void handleSyscall(uint32_t* number, uint32_t* param1, uint32_t* param2, uint32_
             break;
         }
         case SYSCALL_WRITE : {
-            String* path = new((char*)*param1);
+            String* path = new((char*)*ebx);
             File_t* f = openFile(path);
-            writeToFile(f, (void*)*param2, (size_t)*param3);
+            writeToFile(f, (void*)*ecx, (size_t)*edx);
             closeFile(f);
             unloadString(path);
             break;
@@ -75,7 +75,7 @@ void handleSyscall(uint32_t* number, uint32_t* param1, uint32_t* param2, uint32_
             break;
         }
         case SYSCALL_WRITECOM : {
-            sendCOM(*param1, (uint8_t*)*param2, (size_t)*param3);
+            sendCOM(*ebx, (uint8_t*)*ecx, (size_t)*edx);
             break;
         }
     }

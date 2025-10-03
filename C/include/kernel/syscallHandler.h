@@ -1,4 +1,4 @@
 #pragma once
 #include "kernel/sys.h"
 
-void handleSyscall(uint32_t* number, uint32_t* param1, uint32_t* param2, uint32_t* param3);
+void handleSyscall(uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* edx);
