@@ -102,10 +102,11 @@ uint8_t getTerminalColor(){
 void moveCursor(int x, int y){
     updateCursor(x + y * TEXT_MAX_WIDTH);
 }
-void printToTerminal(const char* s){
+void printToTerminal(const char* s, int isStepping){
     if(!s) return;
 
     //Scorrere la stringa
+    int x = charX, y = terminal.lineNumber;
     for(int i = 0; s[i] != 0; i++){
         if(s[i] == '\b') deleteChar(); //Stiamo cancellando
         else if(s[i] == '\t'){ //Stiamo tabulando
@@ -113,6 +114,10 @@ void printToTerminal(const char* s){
         }
         else if(s[i] == '\n') newLine();
         else putChar(s[i]);
+    }
+    if(isStepping){
+        charX = x;
+        terminal.lineNumber = y;
     }
 }
 void scanTerminal(uint8_t* buffer, size_t size){
@@ -155,3 +160,4 @@ void scanTerminal(uint8_t* buffer, size_t size){
 
     setCursorBlink(0);
 }
+ 

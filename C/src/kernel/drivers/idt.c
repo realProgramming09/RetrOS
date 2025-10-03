@@ -182,10 +182,6 @@ void isrHandler(struct ISRFrame* frame){
             if(isListening) timePassed++; //Increment serial timeout counter
             break;
         }
-        case KEYBOARD_PRESS: { 
-            currentKeyPressed = recByte(0x60); //Read from keyboard
-            break;
-        }
         case SYSCALL: {
             sendEOI(frame->isrNumber); //Syscall are gonna use IRQs, re-enable them
             asm volatile("sti"); 

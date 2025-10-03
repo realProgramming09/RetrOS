@@ -18,6 +18,7 @@ extern uint8_t currentKeyPressed;
 
 void print(DataType type, const void* data); //Prints something, taking the type as a parameter
 void println(DataType type, const void* data); //print() that does '\n'
+void printStatic(DataType type, const void* data); //print() that does not step forward. Useful for printing static text
 char getChar(); //Gets a single char from keyboard
 
 //ASM functions: send and receive a byte from a port

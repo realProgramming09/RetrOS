@@ -623,6 +623,8 @@ void load(String* input){
     //Dichiarare i dati necessari: firma iniziale, dimensione, firma finale
     uint32_t leadSignature = 0, fileSize = 0, trailSignature = 0;
 
+    serialInit(COM1, 6);
+
     //Macro locale per semplificare la gestione errori
     #define VALIDATE(cond, message)\
     if(cond){\
@@ -669,33 +671,49 @@ void load(String* input){
     unloadArray(tokens);
 }  
 void benchmark(String* input){
-    println(STRING_IMMEDIATE, "Inizio benchmark...\0");
+    println(STRING_IMMEDIATE, "Starting benchmark...\0");
     
-    int start = now();
+    int start = now(), end = 0;;
     #define TESTS 1000000
-    for(int i = 0; i < TESTS; ++i){
-        float f = (float)now() / (float)i;
-        f *= (float)(i+4);
+    #define OVERHEAD 50
+    int i = 0;
+     
+    newFile(new("hey.txt"));
+    for(; i < TESTS; ++i){
+        if((end = now()) - start > 1000 + OVERHEAD) break;
+        
+        
+         
+        //printStatic(INT, &i);
+       
     }
-    int end = now();
+    end = now();
+    println(STRING_IMMEDIATE, "");
+    
 
-    float delta = (float)(end - start);
+    float delta = (float)(end - start) - OVERHEAD; //There is an overhead of approx. 1.85s
     uint8_t isSeconds = delta > 1000;
-    float FLOPS = (float)(TESTS * 2) / (delta / 1000);
+     
 
-    println(STRING_IMMEDIATE, "Test completato.\0");
-    println(STRING_IMMEDIATE, "Consisteva in: 1M divisioni tra float.\0");
-    print(STRING_IMMEDIATE, "Tempo impiegato: ");
-    if(isSeconds){
-        delta /= 1000;
-        print(FLOAT, &delta);
-        println(STRING_IMMEDIATE, "s.");
+    println(STRING_IMMEDIATE, "Benchmark completed.\0");
+    
+    if(i == TESTS && delta > 0){
+        print(STRING_IMMEDIATE, "1M tests completed in: ");
+        if(isSeconds){
+            delta /= 1000;
+            print(FLOAT, &delta);
+            println(STRING_IMMEDIATE, "s.");
+        }
+        else{
+            print(FLOAT, &delta);
+            println(STRING_IMMEDIATE, "ms.");
+        }
     }
-    else{
-        print(FLOAT, &delta);
-        println(STRING_IMMEDIATE, "ms.");
+    else if(delta > 0){
+        print(STRING_IMMEDIATE, "Tests completed in 1s: ");
+        println(INT, &i);
     }
-    print(STRING_IMMEDIATE, "FLOPS: ");
-    println(FLOAT, &FLOPS);
+    else println(STRING_IMMEDIATE, "Time for test is less than 1ms.");
+     
     
 }

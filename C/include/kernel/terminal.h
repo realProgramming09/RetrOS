@@ -25,7 +25,7 @@ void terminalInit(); //Inizializza il terminale
 void setTerminalColor(const uint8_t color); //Imposta il colore
 uint8_t getTerminalColor(); //Ritorna il colore
 
-void printToTerminal(const char* s); //Stampa la stringa sul terminale
+void printToTerminal(const char* s, int isStepping); //Stampa la stringa sul terminale
 void scanTerminal(uint8_t* buffer, size_t size); //Mette l'input da tastiera nel buffer
 void moveCursor(int x, int y); //Muove il cursore
 void clearTerminal(); //Pulisce il terminale

@@ -59,10 +59,13 @@ ISR_NOERR 31
 global isr32
 
 isr32:
+    pushad ; Save registers before calling the function
+    call stepTimer
+    popad
+
     push dword 32
     push dword 0 ;Nessun codice di errore, padding per avere un codice solo e non 300
     
-    call stepTimer
     jmp isr_main
 ISR_NOERR 33
 ISR_NOERR 34

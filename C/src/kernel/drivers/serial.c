@@ -6,7 +6,7 @@
 
 //Macro to wait for hardware
 #define sendWait while((recByte(ID + LINE_CONTROL_OFFSET) & 0x01) == 0)
-#define recWait while((recByte(ID + LINE_CONTROL_OFFSET) & 0x20) == 0 || head == tail)
+#define recWait while((recByte(ID + LINE_STATUS_OFFSET) & 0x20) == 0 || head == tail)
 
 #define TIMEOUT 100 //Timeout after a connection is established
 

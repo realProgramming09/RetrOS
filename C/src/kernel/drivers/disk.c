@@ -28,6 +28,14 @@ static inline void waitForDisk(){ //Funzione che aspetta che il disco sia pronto
         status = recByte(STATUS); //Leggiamo il registro status
     } while(status & 0x80 && !(status & 0x08)); //Finché i bit 7 e 3 sono settati, tocca aspettare
 }
+static inline void checkForErrors(){
+    int errors = 0;
+    errors = recByte(ERRORS);
+    if(errors == recByte(ERRORS) && (recByte(STATUS) & 1)){ //Guardrail against stack corruption
+        panic(DISK_ERROR);
+    } 
+    waitForDisk();
+}
 void diskSetup(uint32_t lba, uint32_t count, uint32_t driveNumber, uint32_t command){ 
     waitForDisk(); //Aspettiamo il disco...
     uint8_t selector = driveNumber | ((lba >> 24) & 0xF); //Prima, selezionare il disco
@@ -52,9 +60,7 @@ uint16_t* readSectors(uint32_t sectorStart, uint8_t count){
         waitForDisk(); //Aspettiamo...
         for(uint16_t j = 0; j < 256; j++){
             sectorBuffer[256*i + j] = recWord(DATA);
-            if(recByte(ERRORS) && (recByte(STATUS) & 1)){ //Only one bit can be set at a time: guardrail against stack corruption
-                panic(DISK_ERROR);
-            } 
+            checkForErrors();
             waitForDisk();
         }
     }
@@ -76,9 +82,7 @@ void writeSector(uint32_t sectorStart, uint16_t* data, size_t size){
             uint16_t index = i*256+j; //Assicuriamoci di non mandare il buffer in overflow
             if(index >= size) sendWord(DATA, 0);
             else sendWord(DATA, data[index]);
-            if(recByte(ERRORS)){
-                 panic(DISK_ERROR);
-            }
+            checkForErrors();
             waitForDisk();
         }
     }
