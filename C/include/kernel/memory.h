@@ -14,10 +14,7 @@ typedef struct Page{
 
 MMU_t* mmuInit(); //Inizializza la MMU
 uint32_t detectRam(void); //Ritorna la capacità della RAM
-void loadMMU(MMU_t* m); //Carica una MMU. utile per comunicare. 
-
-Page_t requestPage(); //Richiede una pagina (8KB), dove hai il pieno controllo
-void freePage(Page_t* page); //Libera la pagina
+void loadMMU(MMU_t* m); //Carica una MMU. utile per comunicare
 
 void* genericAlloc(size_t size); //Allocatore generico
 void* genericRealloc(void* ptr, size_t size); //Ri-allocatore generico

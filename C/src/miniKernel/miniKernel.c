@@ -1,5 +1,5 @@
 #include "kernel/sys.h"
-#include "kernel/mmu.h"
+#include "kernel/memory.h"
 #include "kernel/disk.h"
  
 void start(){

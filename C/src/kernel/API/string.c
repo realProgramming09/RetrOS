@@ -1,5 +1,5 @@
 #include "kernel/str.h"
-#include "kernel/mmu.h"
+#include "kernel/memory.h"
 #include "kernel/sys.h"
 
 typedef struct String{

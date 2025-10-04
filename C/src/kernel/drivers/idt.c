@@ -2,7 +2,7 @@
 #include "kernel/sys.h"
 #include "kernel/terminal.h"
 #include "kernel/sysio.h"
-#include "kernel/mmu.h"
+#include "kernel/memory.h"
 #include "kernel/bsod.h"
 #include "kernel/serial.h"
 #include "kernel/syscallHandler.h"
@@ -180,6 +180,10 @@ void isrHandler(struct ISRFrame* frame){
          
         case PIT_FIRE:{
             if(isListening) timePassed++; //Increment serial timeout counter
+            break;
+        }
+        case KEYBOARD_PRESS: {
+            currentKeyPressed = recByte(0x60);
             break;
         }
         case SYSCALL: {

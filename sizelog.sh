@@ -34,7 +34,7 @@ countSize(){
     fi 
 }
 
-countKernel(){
+countRecursive(){
     for dir in $1/*; do
         if [ -d $dir ]; then
             countSize $dir
@@ -44,10 +44,10 @@ countKernel(){
 
 
 
-countKernel C/src/kernel
-countKernel ASM
+countRecursive C/src/kernel
+countRecursive ASM
 countSize elf
-countSize obj
+countRecursive obj
 countSize bin
 countSize lib
 

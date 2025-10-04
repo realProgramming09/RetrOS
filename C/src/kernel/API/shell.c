@@ -1,5 +1,5 @@
 #include "kernel/str.h"
-#include "kernel/mmu.h"
+#include "kernel/memory.h"
 #include "kernel/sysio.h"
 #include "kernel/files.h"
 #include "kernel/serial.h"
@@ -675,23 +675,23 @@ void benchmark(String* input){
     
     int start = now(), end = 0;;
     #define TESTS 1000000
-    #define OVERHEAD 50
+    #define OVERHEAD 1850
     int i = 0;
      
-    newFile(new("hey.txt"));
+     
     for(; i < TESTS; ++i){
         if((end = now()) - start > 1000 + OVERHEAD) break;
         
-        
+        /* PASTE BENCHMARK HERE */
          
-        //printStatic(INT, &i);
+        //printStatic(INT, &i); //Prints how many tests have been completed
        
     }
     end = now();
     println(STRING_IMMEDIATE, "");
     
 
-    float delta = (float)(end - start) - OVERHEAD; //There is an overhead of approx. 1.85s
+    float delta = (float)(end - start) - OVERHEAD; //There is an overhead of approx. 1.85s if dinamic logging is enabled
     uint8_t isSeconds = delta > 1000;
      
 

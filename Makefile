@@ -23,7 +23,9 @@ NASM_BIN_FLAGS := -f bin
 KERNEL_C_FILES := $(wildcard C/src/kernel/core/*.c) \
 	 $(wildcard C/src/kernel/API/*.c) \
 	 $(wildcard C/src/kernel/drivers/*.c) \
-	 $(wildcard C/src/kernel/io/*.c)
+	 $(wildcard C/src/kernel/io/*.c) \
+	 $(wildcard C/src/kernel/memory/*.c) \
+
 KERNEL_ASM_FILES := $(wildcard ASM/kernel/*.asm)
 MINIKERNEL_C_FILES := $(wildcard C/src/miniKernel/*.c) 
 MINIKERNEL_ASM_FILES := $(wildcard ASM/miniKernel/*.asm)
@@ -55,10 +57,10 @@ disk.img:
 	dd if=bin/real_mode.bin of=disk.img seek=2 conv=notrunc
 	dd if=bin/bpb_backup.bin of=disk.img seek=5 conv=notrunc
 clean:
-	rm -rf bin/*
-	rm -rf elf/*
-	rm -rf obj/*
-	rm -rf lib/*
+	rm -rf bin 
+	rm -rf elf 
+	rm -rf obj 
+	rm -rf lib 
 
 debug: build
 	$(QEMU) $(QEMU_DEBUG_FLAGS) & gdb -ex "target remote:1234" elf/kernel.elf 
@@ -78,23 +80,29 @@ bootloader: $(BOOTLOADER_FILES)
 	 
 
 kernel: $(KERNEL_FILES) 
-	mkdir -p obj obj/core obj/API obj/drivers obj/io obj/user 
+	mkdir -p obj obj/core obj/API obj/drivers obj/io obj/user obj/memory
 
 	$(NASM) $(NASM_OBJ_FLAGS) -o obj/ASM/kernelASM.o ASM/kernel/kernelASM.asm
 	 
 	$(CC) $(CC_FLAGS) -o obj/core/main.o $(KERNEL_SRC_DIR)/core/main.c -I "$(INCLUDE_DIR)" 
+	$(CC) $(CC_FLAGS) -o obj/core/syscallHandler.o $(KERNEL_SRC_DIR)/core/syscallHandler.c -I "$(INCLUDE_DIR)"  
+
 	$(CC) $(CC_FLAGS) -o obj/io/sysio.o $(KERNEL_SRC_DIR)/io/sysio.c -I "$(INCLUDE_DIR)"  
+	$(CC) $(CC_FLAGS) -o obj/io/bsod.o $(KERNEL_SRC_DIR)/io/bsod.c -I "$(INCLUDE_DIR)"  
+	
+	$(CC) $(CC_FLAGS) -o obj/API/string.o $(KERNEL_SRC_DIR)/API/string.c -I "$(INCLUDE_DIR)"
+	$(CC) $(CC_FLAGS) -o obj/API/math.o $(KERNEL_SRC_DIR)/API/math.c -I "$(INCLUDE_DIR)" 
+	$(CC) $(CC_FLAGS) -o obj/API/shell.o $(KERNEL_SRC_DIR)/API/shell.c -I "$(INCLUDE_DIR)" -Wno-unused-parameter    
+	
+	$(CC) $(CC_FLAGS) -o obj/memory/mmu.o $(KERNEL_SRC_DIR)/memory/mmu.c -I "$(INCLUDE_DIR)"  
+
 	$(CC) $(CC_FLAGS) -o obj/drivers/idt.o $(KERNEL_SRC_DIR)/drivers/idt.c -I "$(INCLUDE_DIR)" -Wno-address-of-packed-member
 	$(CC) $(CC_FLAGS) -o obj/drivers/terminal.o $(KERNEL_SRC_DIR)/drivers/terminal.c -I "$(INCLUDE_DIR)"  
-	$(CC) $(CC_FLAGS) -o obj/API/string.o $(KERNEL_SRC_DIR)/API/string.c -I "$(INCLUDE_DIR)"  
-	$(CC) $(CC_FLAGS) -o obj/drivers/mmu.o $(KERNEL_SRC_DIR)/drivers/mmu.c -I "$(INCLUDE_DIR)"  
 	$(CC) $(CC_FLAGS) -o obj/drivers/disk.o $(KERNEL_SRC_DIR)/drivers/disk.c -I "$(INCLUDE_DIR)"  
 	$(CC) $(CC_FLAGS) -o obj/drivers/files.o $(KERNEL_SRC_DIR)/drivers/files.c -I "$(INCLUDE_DIR)"  -Wno-address-of-packed-member
-	$(CC) $(CC_FLAGS) -o obj/API/math.o $(KERNEL_SRC_DIR)/API/math.c -I "$(INCLUDE_DIR)"  
-	$(CC) $(CC_FLAGS) -o obj/io/bsod.o $(KERNEL_SRC_DIR)/io/bsod.c -I "$(INCLUDE_DIR)"  
 	$(CC) $(CC_FLAGS) -o obj/drivers/serial.o $(KERNEL_SRC_DIR)/drivers/serial.c -I "$(INCLUDE_DIR)"  
-	$(CC) $(CC_FLAGS) -o obj/core/syscallHandler.o $(KERNEL_SRC_DIR)/core/syscallHandler.c -I "$(INCLUDE_DIR)"  
-	$(CC) $(CC_FLAGS) -o obj/API/shell.o $(KERNEL_SRC_DIR)/API/shell.c -I "$(INCLUDE_DIR)" -Wno-unused-parameter 
+	
+	
 	$(CC) $(CC_FLAGS) -o obj/user/kernelAPI.o $(KERNEL_SRC_DIR)/user/kernelAPI.c -I "$(INCLUDE_DIR)"  -Wno-discarded-qualifiers
 	$(CC) $(CC_FLAGS) -o obj/drivers/timer.o $(KERNEL_SRC_DIR)/drivers/timer.c -I "$(INCLUDE_DIR)"  
 miniKernel: 
@@ -108,6 +116,7 @@ miniKernel:
 	 
 
 link: miniKernel kernel
+	mkdir -p lib elf
 	ar rs lib/libos.a obj/user/kernelAPI.o 
 	
 	@echo $(MINIKERNEL_FILES)
@@ -118,6 +127,7 @@ link: miniKernel kernel
 	$(LD) -Ttext 0x100008 $(LD_FLAGS) -o elf/kernel.elf obj/ASM/kernelASM.o $(KERNEL_OBJ_FILES) 
 	
 copy: bootloader link
+	mkdir -p bin
 	$(OBJCOPY) $(OBJCOPY_FLAGS) elf/bootloader.elf bin/bootloader.bin
 	$(OBJCOPY) $(OBJCOPY_FLAGS) elf/real_mode.elf bin/real_mode.bin
 	$(OBJCOPY) $(OBJCOPY_FLAGS) elf/kernel.elf bin/kernel.bin

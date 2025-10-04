@@ -1,6 +1,6 @@
 #include "kernel/syscallHandler.h"
 #include "user/kernelAPI.h"
-#include "kernel/mmu.h"
+#include "kernel/memory.h"
 #include "kernel/files.h"
 #include "kernel/sysio.h"
 #include "kernel/serial.h"

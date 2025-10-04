@@ -1,6 +1,6 @@
 #include "kernel/files.h"
 #include "kernel/disk.h"
-#include "kernel/mmu.h"
+#include "kernel/memory.h"
 #include "kernel/str.h"
  
 //Macro che definiscono gli attributi dei file

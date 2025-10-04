@@ -1,4 +1,4 @@
-#include "kernel/mmu.h"
+#include "kernel/memory.h"
 #include "kernel/sys.h"
 #include "kernel/sysio.h" 
 #include "kernel/terminal.h"

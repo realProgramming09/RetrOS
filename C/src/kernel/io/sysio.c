@@ -1,7 +1,7 @@
 #include "kernel/sysio.h"
 #include "kernel/fixedMath.h"
 #include "kernel/terminal.h"
-#include "kernel/mmu.h"
+ 
 
 void printFloat(float f, int isStatic);
 void printc(char c, int isStatic);

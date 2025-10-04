@@ -1,7 +1,7 @@
 #include "kernel/sysio.h"
 #include "kernel/terminal.h"
 #include "kernel/sys.h"
-#include "kernel/mmu.h"
+#include "kernel/memory.h"
 #include "kernel/disk.h"
 #include "kernel/files.h"
 #include "kernel/str.h"

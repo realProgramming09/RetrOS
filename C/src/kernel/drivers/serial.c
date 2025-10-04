@@ -1,5 +1,5 @@
 #include "kernel/serial.h"
-#include "kernel/mmu.h"
+#include "kernel/memory.h"
 #include "kernel/sysio.h"
 
 
