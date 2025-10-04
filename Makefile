@@ -92,7 +92,8 @@ kernel: $(KERNEL_FILES)
 	
 	$(CC) $(CC_FLAGS) -o obj/API/string.o $(KERNEL_SRC_DIR)/API/string.c -I "$(INCLUDE_DIR)"
 	$(CC) $(CC_FLAGS) -o obj/API/math.o $(KERNEL_SRC_DIR)/API/math.c -I "$(INCLUDE_DIR)" 
-	$(CC) $(CC_FLAGS) -o obj/API/shell.o $(KERNEL_SRC_DIR)/API/shell.c -I "$(INCLUDE_DIR)" -Wno-unused-parameter    
+	$(CC) $(CC_FLAGS) -o obj/API/shell.o $(KERNEL_SRC_DIR)/API/shell.c -I "$(INCLUDE_DIR)" -Wno-unused-parameter
+	$(CC) $(CC_FLAGS) -o obj/API/queue.o $(KERNEL_SRC_DIR)/API/queue.c -I "$(INCLUDE_DIR)"    
 	
 	$(CC) $(CC_FLAGS) -o obj/memory/mmu.o $(KERNEL_SRC_DIR)/memory/mmu.c -I "$(INCLUDE_DIR)"  
 
@@ -109,9 +110,9 @@ miniKernel:
 	mkdir -p obj obj/ASM obj/miniKernel
 	$(NASM) $(NASM_OBJ_FLAGS) -o obj/ASM/miniKernelASM.o ASM/miniKernel/miniKernelASM.asm
 
-	$(CC) $(CC_FLAGS) -o obj/miniKernel/miniKernel.o $(MINIKERNEL_SRC_DIR)/miniKernel.c -I "$(INCLUDE_DIR)"    
-	$(CC) $(CC_FLAGS) -o obj/miniKernel/mmuMini.o $(MINIKERNEL_SRC_DIR)/mmuMini.c -I "$(INCLUDE_DIR)"     
-	$(CC) $(CC_FLAGS) -o obj/miniKernel/diskMini.o $(MINIKERNEL_SRC_DIR)/diskMini.c -I "$(INCLUDE_DIR)"     
+	$(CC) $(CC_FLAGS) -o obj/miniKernel/miniKernel.o $(MINIKERNEL_SRC_DIR)/miniKernel.c -I "$(INCLUDE_DIR)"  
+	$(CC) $(CC_FLAGS) -o obj/miniKernel/mmuMini.o $(MINIKERNEL_SRC_DIR)/mmuMini.c -I "$(INCLUDE_DIR)"    
+	$(CC) $(CC_FLAGS) -o obj/miniKernel/diskMini.o $(MINIKERNEL_SRC_DIR)/diskMini.c -I "$(INCLUDE_DIR)"   
 
 	 
 

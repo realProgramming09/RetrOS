@@ -3,7 +3,7 @@
 #include "kernel/sysio.h" 
 #include "kernel/terminal.h"
 #include "kernel/bsod.h"
-
+#include "kernel/queue.h"
 
 #define E820_ADDR 0x4000
 #define E820_COUNT_ADDR 0x1FF0
@@ -12,7 +12,11 @@
 #define RAM_START_ADDR 0x100000
 #define BITMAP_ENTRY_SIZE 32
 
-
+#define INT_SIZE 4
+#define SMALL_STRING_SIZE 8
+#define STRING_SIZE 16
+#define STRUCT_SIZE 32
+#define LARGE_STRUCT_SIZE 64
 
 //Struct of an E820 entry: base address, entry size, entry tipe (reserved, useful, broken etc.) and optional info
 struct E820Entry{
@@ -29,14 +33,12 @@ typedef struct SegmentHeader{
     uint32_t segmentCount; 
 }__attribute__((packed)) SegmentHeader_t;
 
-//Struct of a bucket: a smaller array divided in smaller segments (es. 4B * 1000 elements)
 
- 
 static MMU_t* state;
 static uint32_t initialAddress = NULL;
 static uint32_t segmentBitmap[SEG_OFFSET_SIZE];
 
-
+ 
 
 static inline void* MMUAlloc(MMU_t* local, size_t size){
      state = local;
@@ -63,7 +65,7 @@ void loadMMU(MMU_t* m){
         segmentBitmap[i] = (i < 1024) ? m->segmentBitmap[i] : 0;
     }
      
-    //Allocare la MMU in RAM e configurarla
+    //Allocate state on RAM and set it up
     state = MMUAlloc(m, sizeof(MMU_t));
     *state = (MMU_t){
         .capacity = m->capacity,
@@ -72,11 +74,12 @@ void loadMMU(MMU_t* m){
     };
     
 
-    //Impostare la regione dove si trova state come occupata sennò si sovrascrive
+    //Mark &state as occupied so it doesn't get corrupted
     initialAddress = (uint32_t)&state;
     int segAbsNumber = (initialAddress - RAM_START_ADDR) / SEG_SIZE;
     state->segmentBitmap[segAbsNumber / BITMAP_ENTRY_SIZE] |= ((uint32_t)1 << segAbsNumber % BITMAP_ENTRY_SIZE); //Impostare il segmento dove si trova a 1 
      
+ 
 }
 void* genericAlloc(size_t size){
     if(size < 1) return NULL; //Dimensione invalida

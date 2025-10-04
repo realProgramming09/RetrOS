@@ -3,14 +3,11 @@
 #pragma once
 
 typedef struct MMU{
-    uint32_t capacity; //Capacità totale
-    uint32_t freeAmount; //Quanta RAM è libera
-    uint32_t* segmentBitmap; //ARray di bitmap dei segmenti
+    uint32_t capacity; //Total RAM capacity
+    uint32_t freeAmount; //Total free RAM
+    uint32_t* segmentBitmap; //BItmap that divides RAM into segments
 } MMU_t;
-typedef struct Page{
-    uint16_t pageNumber; //Numero della pagina
-    void* base; //Indirizzo della pagina
-}__attribute__((packed)) Page_t;
+ 
 
 MMU_t* mmuInit(); //Inizializza la MMU
 uint32_t detectRam(void); //Ritorna la capacità della RAM
