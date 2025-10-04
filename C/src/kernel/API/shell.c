@@ -682,7 +682,7 @@ void benchmark(String* input){
     for(; i < TESTS; ++i){
         if((end = now()) - start > 1000 + OVERHEAD) break;
         
-        /* PASTE BENCHMARK HERE */
+        
          
         //printStatic(INT, &i); //Prints how many tests have been completed
        
