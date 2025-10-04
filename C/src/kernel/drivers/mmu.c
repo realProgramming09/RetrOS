@@ -34,6 +34,7 @@ typedef struct SegmentHeader{
 }__attribute__((packed)) SegmentHeader_t;
 
 
+static int firstFreePage = 0;
 static MMU_t* state;
 static uint32_t initialAddress = NULL;
 static uint32_t segmentBitmap[SEG_OFFSET_SIZE];
@@ -101,8 +102,11 @@ void* genericAlloc(size_t size){
     uint16_t actualCapacity = state->capacity / SEG_SIZE / BITMAP_ENTRY_SIZE; //The RAM size in entries, to not iterate on RAM that you don't have 
     uint16_t remaining =  segCount;
     uint16_t segmentNumber = 0;
-    for(uint16_t i = 0; i < actualCapacity && remaining; i++){
-        if(state->segmentBitmap[i] == 0xFFFFFFFF) continue; //Entry completely full
+    for(uint16_t i = firstFreePage; i < actualCapacity && remaining; i++){
+        if(state->segmentBitmap[i] == 0xFFFFFFFF){ //Entry completely full
+            firstFreePage = i;
+            continue;
+        } 
          
         for(uint8_t j = 0; j < 32; j++){
             if(!(state->segmentBitmap[i] & ((uint32_t)1 << j))){
@@ -134,6 +138,7 @@ void* genericAlloc(size_t size){
     uint16_t pageNumber = segmentNumber / BITMAP_ENTRY_SIZE;  //Page number
     uint16_t segOffset = segmentNumber % BITMAP_ENTRY_SIZE;  //Segment number relative to page
     
+    if(pageNumber < firstFreePage) firstFreePage = pageNumber;
     for(int i = 0; i < segCount; i++){
         if(segOffset ==  BITMAP_ENTRY_SIZE ) { //We reached a page end
             segOffset = 0;
@@ -142,6 +147,7 @@ void* genericAlloc(size_t size){
         
         state->segmentBitmap[pageNumber] |= ((uint32_t)1 << segOffset++); //Set the current bit to 1
         state->freeAmount -= SEG_SIZE;
+        
     }
 
     

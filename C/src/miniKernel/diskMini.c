@@ -22,7 +22,7 @@ void waitForDisk(){
     } while(status & 0x80 && !(status & 0x08)); //While bits 7 and 3 ar
 }
 
-uint16_t* readSectors(uint32_t sectorStart, uint8_t count){
+uint16_t* readSectors(uint32_t sectorStart, uint16_t count){
     waitForDisk(); //Aspettiamo il disco...
     uint8_t selector = 0xE0 | ((sectorStart >> 24) & 0xF); //Prima, selezionare il disco
     sendByte(DRIVE_REG, selector);  

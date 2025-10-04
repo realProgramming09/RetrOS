@@ -269,3 +269,21 @@ int strncmp(const char* s1, const char* s2, size_t size){
     }
     return 0;
 }
+void strcat(char* s1, const char* s2){
+    if(!s1 || !s2) return;
+    
+    int length1 = strlen(s1);
+    int length2 = strlen(s2);
+    for(int i = 0; i < length2; i++){
+        s1[length1+i] = s2[i];
+    } 
+}
+void strncat(char* s1, const char* s2, size_t size){
+    if(!s1 || !s2 || size < 1) return;
+
+    int length1 = strlen(s1);
+    int length2 = strlen(s2);
+    for(int i = 0; i < length2 && i+length1 < size; i++){
+        s1[length1+i] = s2[i];
+    } 
+}

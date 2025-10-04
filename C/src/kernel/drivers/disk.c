@@ -20,42 +20,39 @@
 #define READ 0x20
 #define WRITE 0x30
 
-void diskSetup(uint32_t lba, uint32_t count, uint32_t driveNumber, uint32_t command); //Funzione che imposta il disco in base a ciò che vogliamo fare
+void diskSetup(uint32_t lba, uint32_t count, uint32_t driveNumber, uint32_t command); //Function that sets up the disk depending on what we want to do
 
-static inline void waitForDisk(){ //Funzione che aspetta che il disco sia pronto
+static inline void waitForDisk(){ //Function that waits for disk
     uint8_t status;
     do{
-        status = recByte(STATUS); //Leggiamo il registro status
-    } while(status & 0x80 && !(status & 0x08)); //Finché i bit 7 e 3 sono settati, tocca aspettare
+        status = recByte(STATUS); //Read the status registers
+    } while(status & 0x80 && !(status & 0x08)); //While bits 7 is set and bit 3 isn't, we wait
 }
 static inline void checkForErrors(){
-    int errors = 0;
-    errors = recByte(ERRORS);
-    if(errors == recByte(ERRORS) && (recByte(STATUS) & 1)){ //Guardrail against stack corruption
+    if(recByte(ERRORS) && (recByte(STATUS) & 1)){  //If there is an error, launch a BSOD
         panic(DISK_ERROR);
     } 
-    waitForDisk();
+     
 }
 void diskSetup(uint32_t lba, uint32_t count, uint32_t driveNumber, uint32_t command){ 
-    waitForDisk(); //Aspettiamo il disco...
-    uint8_t selector = driveNumber | ((lba >> 24) & 0xF); //Prima, selezionare il disco
+    waitForDisk();  
+    uint8_t selector = driveNumber | ((lba >> 24) & 0xF); //Tell which disk to command
     sendByte(DRIVE_REG, selector);  
 
-    //Riempire i registri con l'indirizzo LBA
+    //Write LBA into registers
     sendByte(LBA_LOW, lba & 0xFF);
     sendByte(LBA_MID, (lba >> 8) & 0xFF);
     sendByte(LBA_HIGH, (lba >> 16) & 0xFF);
 
-    //Dire al disco quanti settori vogliamo leggere/scrivere
+    //Tell the disk how many sectors we wanna read/write
     sendByte(SECTOR_COUNT, count);
-    sendByte(STATUS, command); //Leggere/scrivere
+    sendByte(STATUS, command); //Read/write
 }
-uint16_t* readSectors(uint32_t sectorStart, uint8_t count){
+uint16_t* readSectors(uint32_t sectorStart, uint16_t count){
     
-    diskSetup(sectorStart, count, MASTER, READ); //Impostare il disco principale per leggere 
-
+    diskSetup(sectorStart, count, MASTER, READ); //Set the master drive for reading
      
-    uint16_t* sectorBuffer = genericAlloc(sizeof(uint16_t)*256 * count);
+    uint16_t* sectorBuffer = genericAlloc(sizeof(uint16_t)*256 * count); //Allocate enough space on RAM
     for(uint8_t i = 0; i < count; i++){
         waitForDisk(); //Aspettiamo...
         for(uint16_t j = 0; j < 256; j++){
@@ -67,21 +64,43 @@ uint16_t* readSectors(uint32_t sectorStart, uint8_t count){
     
     return sectorBuffer;
 }
+void readSectorsIntoBuffer(uint32_t sectorStart, uint16_t count, uint16_t* buffer, size_t size){
+    
+    diskSetup(sectorStart, count, MASTER, READ); //Set the master drive for reading
+
+     
+    for(uint8_t i = 0; i < count; i++){
+        waitForDisk(); //Aspettiamo...
+        for(uint16_t j = 0; j < 256; j++){
+            int index = i*256 + j;
+            if(index >= size){
+                return;//We stop if we are overflowing
+            } 
+
+            buffer[256*i + j] = recWord(DATA);
+            checkForErrors();
+            waitForDisk();
+        }
+    }
+ 
+}
 void writeSector(uint32_t sectorStart, uint16_t* data, size_t size){
     
-    //Quanti settori occupa, per eccesso
+    //How many sectors the buffer occupies, approximating by excess
     uint16_t count;
     if(size % 512 == 0) count = size / 512;  
     else count = size / 512 +1;
     
-    diskSetup(sectorStart, count, MASTER, WRITE); //Impostare il disco per scrivere
+    diskSetup(sectorStart, count, MASTER, WRITE); //Set the master slave for writing
      
     for(uint16_t i = 0; i < count; i++){
         waitForDisk(); //Aspettiamo il disco...
         for(uint16_t j = 0; j < 256; j++){
-            uint16_t index = i*256+j; //Assicuriamoci di non mandare il buffer in overflow
-            if(index >= size) sendWord(DATA, 0);
-            else sendWord(DATA, data[index]);
+            uint16_t index = i*256+j; //No overflow
+            if(index >= size) return;
+
+            sendWord(DATA, data[index]);
+
             checkForErrors();
             waitForDisk();
         }

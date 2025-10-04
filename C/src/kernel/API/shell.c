@@ -5,6 +5,8 @@
 #include "kernel/serial.h"
 #include "kernel/bsod.h"
 #include "kernel/timer.h"
+#include "kernel/disk.h"
+
 
 #define COMMANDS_NUMBER 20
  
@@ -678,18 +680,20 @@ void benchmark(String* input){
     #define OVERHEAD 1850
     int i = 0;
      
+    String* s = new("hey.txt"); 
      
     for(; i < TESTS; ++i){
         if((end = now()) - start > 1000 + OVERHEAD) break;
         
-        
-         
-        //printStatic(INT, &i); //Prints how many tests have been completed
+        void* allocation = genericAlloc(sizeof(int));
+        genericFree(allocation);
+
+        printStatic(INT, &i); //Prints how many tests have been completed
        
     }
     end = now();
     println(STRING_IMMEDIATE, "");
-    
+    unloadString(s);
 
     float delta = (float)(end - start) - OVERHEAD; //There is an overhead of approx. 1.85s if dinamic logging is enabled
     uint8_t isSeconds = delta > 1000;

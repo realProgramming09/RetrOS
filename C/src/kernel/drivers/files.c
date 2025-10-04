@@ -70,13 +70,16 @@ static struct BPB* bpb;
 static struct FAT32_EBPB* ebpb;
 static struct FSinfo* fs;
 static uint32_t* FAT;
+static uint8_t* clusterCache;
+
 uint32_t FATsize = 0;
 uint32_t entriesSize;
 uint32_t rootCluster = 2;
+uint8_t isBufferFree = 1;
 
 
 /* FUNZIONI INTERNE, PER ASTRARRE TASK RIPETITIVE */
-DirectoryEntry_t* findEntry(Folder_t* folder, String* fullName, uint8_t attributes); //Scorre una cartella per cercare un'entry specifica
+DirectoryEntry_t* findEntry(Folder_t* folder, char* name, uint8_t attributes); //Scorre una cartella per cercare un'entry specifica
 void removeEntry(DirectoryEntry_t* entry); //Marca un'entry come libera
 PathInfo parsePath(String* path, int attribute); //Scorre il percorso ritornando la cartella genitore e l'entry che rappresenta ciò che il path descrive accertandosi che esiste
  
@@ -92,6 +95,12 @@ static inline uint32_t getSectorNumber(uint32_t clusterNumber){
 }
 static inline void* readCluster(uint32_t clusterNumber){
     uint32_t sectorNumber = getSectorNumber(clusterNumber);
+    if(isBufferFree){
+        readSectorsIntoBuffer(sectorNumber, bpb->clusterSize, (uint16_t*)clusterCache, bpb->clusterSize * bpb->sectorSize / 2);
+        isBufferFree = 0;
+        return clusterCache;
+    }
+
     void* cluster = readSectors(sectorNumber, bpb->clusterSize);
     return cluster;
 }
@@ -115,6 +124,7 @@ Folder_t openRoot(){
         .name = new("/")
     };
     
+    
     folder.entries = readCluster(folder.clusterNumber);
     
     
@@ -127,10 +137,22 @@ Folder_t openRoot(){
     }
     return folder;
 }
-DirectoryEntry_t* findEntry(Folder_t* folder, String* fullName, uint8_t attributes){
-    if(!folder->entries || !folder || !fullName || !attributes) return (DirectoryEntry_t*)NOT_FOUND;
+DirectoryEntry_t* findEntry(Folder_t* folder, char* fullName, uint8_t attributes){
+    if(!folder->entries || !folder || !strlen(fullName) || !attributes) return (DirectoryEntry_t*)NOT_FOUND;
 
-    StringArray* tokens = split(fullName, '.'); //Spezzare il nome completo in nome ed estensione
+    //Split fullName in name and extension
+    char name[9] = {0};
+    char extension[4] = {0};
+    for(int i = 0; fullName[i] != '.'; i++){ 
+        name[i] = fullName[i];
+    }
+    for(int i = 0, length = strlen(name); i+length < strlen(fullName)-1; i++){ 
+        extension[i] = fullName[i+length+1];
+    }
+
+    name[8] = 0;
+    extension[3] = 0;
+
     DirectoryEntry_t* entry = (DirectoryEntry_t*)NOT_FOUND;
 
     //Scorrere la cartella alla ricerca della entry giusta
@@ -138,13 +160,13 @@ DirectoryEntry_t* findEntry(Folder_t* folder, String* fullName, uint8_t attribut
         if((uint8_t)folder->entries[i].name[0] == FREE_ENTRY) continue; //Entry libera
         if(folder->entries[i].attributes != attributes) continue; //L'attributo deve coincidere
 
-        if(!compareImmediate(tokens->data[0], (char*)folder->entries[i].name, NAME_SIZE)){
+        if(!strncmp(name, (char*)folder->entries[i].name, NAME_SIZE)){
             if(attributes == 0x20){ //Se è un file, bisogna controllare anche l'estensione
-                if(!strLength(tokens->data[1]) && folder->entries[i].extension[0] == 0){ //Se manca a uno, deve mancare all'altro
+                if(!strlen(extension) && folder->entries[i].extension[0] == 0){ //Se manca a uno, deve mancare all'altro
                     entry = &folder->entries[i];
                     break;
                 }
-                else if(!compareImmediate(tokens->data[1], folder->entries[i].extension, EXTENSION_SIZE)){
+                else if(!strncmp(extension, (char*)folder->entries[i].extension, EXTENSION_SIZE)){
                     entry = &folder->entries[i];
                     break;
                 }
@@ -157,7 +179,7 @@ DirectoryEntry_t* findEntry(Folder_t* folder, String* fullName, uint8_t attribut
 
     }
 
-    unloadArray(tokens);
+     
     return entry;
 }
 void removeEntry(DirectoryEntry_t* entry){  
@@ -177,36 +199,31 @@ PathInfo parsePath(String* path, int attribute){
  
     if(!path || (attribute != DIRECTORY && attribute != ARCHIVE)) return dummy;
 
-    String* name = newBuffer(12); //ALlocare una stringa per contenere il nome
-    String* parentName = NULL; //Allocare (dopo, nel codice) una stringa contenente il nome della cartella genitore
-    String* parentPath = newBuffer(64); //Allocare una stringa per contenere il percorso della cartella genitore
-    uint8_t pathLength = strLength(path); //La lunghezza del percorso
+    char name[12] = {0}; //Buffer for entry name
+    char parentName[12] = {0}; //Buffer for parent directory's name
+    char parentPath[64] = {0}; //Buffer for parent directory's path
+    uint8_t pathLength = 64;
 
    
 
-    //Scorrere il percorso alla ricerca del nostro file
-    Folder_t* parent = genericAlloc(sizeof(Folder_t)); //Allocare la parent directory
-    parent->clusterNumber = rootCluster;
-    
+    //Parse the path searching for entry
+    uint32_t parentCluster = rootCluster;
     uint8_t extension = 0;
-    for(int i = 0, j = 0; i < pathLength; i++){
-        if(j >= NAME_SIZE && !extension){
-            genericFree(parent);
-            unloadString(parentName);
-            unloadString(parentPath);
-            unloadString(name);
+    for(int i = 0, nameLength = 0, parentPathLength = 0; i < pathLength; i++){
+        if(nameLength >= NAME_SIZE && !extension){
+    
             return (PathInfo){.currentEntry = (DirectoryEntry_t*)NAME_TOO_LONG};
         }
         if(!extension && charAt(path, i) == '.') extension = 1;
-        if(charAt(path, i) == '/'){ //Siamo a un nome di cartella
+        if(charAt(path, i) == '/'){ //We're at a folder name
 
-            //Leggere gli elementi della cartella e vedere se la sottocartella esiste
-            DirectoryEntry_t* entries = readCluster(parent->clusterNumber);
+            //Parse the folder's entries to check if subfolder exists
+            DirectoryEntry_t* entries = readCluster(parentCluster);
             uint8_t found = 0;
             for(int j = 0; entries[j].name[0] != 0; j++){
                 if(entries[j].name[0] == FREE_ENTRY) continue;
-                if(!compareImmediate(name, (char*)entries[j].name, NAME_SIZE) && entries[j].attributes == DIRECTORY){
-                    parent->clusterNumber = (entries[j].clusterNumberHigh << 16) | entries[j].clusterNumberLow;
+                if(!strncmp(name, (char*)entries[j].name, NAME_SIZE) && entries[j].attributes == DIRECTORY){
+                    parentCluster = (entries[j].clusterNumberHigh << 16) | entries[j].clusterNumberLow; //It does
                     found = 1;
                     break;
                 }
@@ -214,36 +231,41 @@ PathInfo parsePath(String* path, int attribute){
             genericFree(entries);
 
 
-            if(!found){ //IL percorso non esiste
-                unloadString(name);
-                unloadString(parentName);
-                unloadString(parentPath);
+            if(!found){ //It doesn't
+                 
                 return (PathInfo){ .currentEntry = (DirectoryEntry_t*)INVALID_PATH};
             }
             
-            //Preparare per la prossima iterazione
-            if(strLength(parentPath)) append(parentPath, '/'); //Continuare a costruire il percorso della cartella genitore
-            concatStrings(parentPath, name);
+            //Prepare for next iteration
+            if(parentPathLength > 0) parentPath[parentPathLength++] = '/'; //Continue building parent directory's path
+            strncat(parentPath, name, strlen(parentPath));
+            parentPathLength += strlen(name);
 
-            //Salvare il nome corrente
-            unloadString(parentName); //La MMU è immune a liberare un NULL ovviamente
-            parentName = copyString(name); 
-            clearString(name);
-            j = 0;
+            //Save current name
+            strncpy(parentName, name, 12);
+            for(int j = 0; j < 12; j++) name[i] = 0; //Clear name
+            nameLength = 0;
         }
         else{ 
-            append(name, charAt(path, i));
-            j++;
+            name[nameLength++] = charAt(path, i);
         }
     }
 
-    if(!parentName || !strLength(parentName)) *parent = openRoot(); //Se abbiamo non almeno un nesting (es a/b), la cartella genitore è la root
-    else { //Altrimenti è da impostare
-        parent->creationTime = 0;
-        parent->creationDate = 0;
-        parent->entries = readCluster(parent->clusterNumber);
-        parent->name = copyString(parentName);
-        parent->path = copyString(parentPath);
+    Folder_t* parent;
+    if(!strlen(parentName)) parent = getRoot(); //If we don't have at least one nesting (ex. path = "a.txt") parentFolder is the root
+    else { //If we do we need to setup the folder
+        parent = genericAlloc(sizeof(Folder_t)); //Allocate it
+
+        //Set its variables
+        *parent = (Folder_t){
+            .creationDate = 0,
+            .creationTime = 0,
+            .clusterNumber = parentCluster,
+            .entries = readCluster(parentCluster),
+            .name = new(parentName),
+            .path = new(parentPath)
+        };
+         
         for(int i = 0;parent->entries[i].name[0] != 0; i++){
             if((uint8_t)parent->entries[i].name[0] != FREE_ENTRY){
                parent->totalSize +=parent->entries[i].size;
@@ -251,25 +273,19 @@ PathInfo parsePath(String* path, int attribute){
             }
         }
     }
-    //Cercare l'entry nella cartella parent e impostare il pathinfo
+    //Find our entry and create the pathInfo
     PathInfo info = {
         .parentDirectory = parent,
         .currentEntry = findEntry(parent, name, attribute)
     };
  
-
-    //Scaricare la RAM
-    unloadString(name);
-    unloadString(parentName);
-    unloadString(parentPath);
+ 
 
     return info;
 }
 
 int delete(String* path, int attribute){
     if(!path) return NOT_FOUND;
-
-    StringArray* tokens = split(path, '/'); //Dividere il path in nomi del filesystem
 
     PathInfo info = parsePath(path, attribute);
     Folder_t* parent = info.parentDirectory;
@@ -291,7 +307,6 @@ int delete(String* path, int attribute){
     //Segnare la entry come libera, aggiornare la cartella sul disco  e scaricare la RAM
     removeEntry(entry);
     writeCluster(parent->clusterNumber, parent->entries);
-    unloadArray(tokens);
     closeFolder(parent);
 
     return 0; //Tutto in ordine
@@ -402,12 +417,17 @@ void* open(String* path, int attributes){
     if(!path) return NULL;
     if(!strLength(path)) return getRoot(); 
 
-    PathInfo info = parsePath(path, attributes); //Scorrere il percorso alla ricerca del nostro file/cartella
+    PathInfo info = parsePath(path, attributes); //Parse the path to get parent directory
 
-    //Leggibilità
+
+    //Readability
     DirectoryEntry_t* entry = info.currentEntry;
     Folder_t* parent = info.parentDirectory;
-    StringArray* tokens = split(path, '/'); //Estrapolare il nome del file
+     
+    //Unite file name and extension in one buffer
+    char name[12] = {0};
+    strcat(name, (char*)entry->name);
+    strncat(name, (char*)entry->extension, 12);
 
     //Gestione errori
     if(!entry) return (DirectoryEntry_t*)INVALID_PATH;
@@ -415,14 +435,13 @@ void* open(String* path, int attributes){
     if(entry == (DirectoryEntry_t*)NAME_TOO_LONG) return (DirectoryEntry_t*)NAME_TOO_LONG;
     if(entry == (DirectoryEntry_t*)NOT_FOUND){
         closeFolder(parent);
-        unloadArray(tokens);
         return(DirectoryEntry_t*) NOT_FOUND;
     }
 
     //Ricavare il numero del cluster
     int cluster = (entry->clusterNumberHigh << 16) | entry->clusterNumberLow;
     void* handler = NULL; //Handler generico
-
+    
     //In base agli attributi, creare e ritornare un file_t o un folder_t
     if(attributes == ARCHIVE){
         File_t* file = genericAlloc(sizeof(File_t)); //Allocare il file in RAM
@@ -430,7 +449,7 @@ void* open(String* path, int attributes){
             .clusterNumber = cluster,
             .creationDate = 0,
             .creationTime = 0,
-            .name = copyString(tokens->data[tokens->length-1]),
+            .name = new(name),
             .path = copyString(path),
             .size = entry->size,
         };
@@ -443,7 +462,7 @@ void* open(String* path, int attributes){
             .clusterNumber = cluster,
             .creationDate = 0,
             .creationTime = 0,
-            .name = copyString(tokens->data[tokens->length-1]),
+            .name = new(name),
             .path = copyString(path)
         };
 
@@ -460,7 +479,6 @@ void* open(String* path, int attributes){
     }
 
     //Scaricare la RAM
-    unloadArray(tokens);
     closeFolder(parent);
 
     return handler;
@@ -472,26 +490,27 @@ Folder_t* getRoot(){
     return root;
 }
 void rootDirInit(){
-    uint8_t* bootSector = (uint8_t*)readSectors(0, 1); //Leggere il boot sector
-    uint8_t* FSsector = (uint8_t*)readSectors(7, 1); //Leggere il settore della FSinfo
+    uint8_t* bootSector = (uint8_t*)readSectors(0, 1); //Read boot sector
+    uint8_t* FSsector = (uint8_t*)readSectors(7, 1); //Read FSinfo sector
 
-    //Leggere BPB, EBPB e FSinfo
+    //Set all variables
     bpb = (struct BPB*)bootSector;
     ebpb = (struct FAT32_EBPB*)(bootSector + sizeof(struct BPB));
     fs = (struct FSinfo*)FSsector;
     entriesSize =  bpb->clusterSize * bpb->sectorSize / sizeof(DirectoryEntry_t);
+    clusterCache = (uint8_t*)genericAlloc(bpb->clusterSize);
 
-    //Leggere la FAT
+    //Read FAT
     FAT = (uint32_t*)readSectors(bpb->reservedSectors, ebpb->sectorsPerfat);
     FATsize = bpb->largeTotalSectors - bpb->clusterSize; //Impostare una dimensione per lavorarci
 
-    //Impostare la FSinfo
+    //Setup the FSinfo
     if(fs->freeClusters == 0xFFFFFFFF || fs->freeClusters > bpb->largeTotalSectors / bpb->clusterSize) fs->freeClusters = (bpb->largeTotalSectors - bpb->reservedSectors - bpb->sectorsPerFat) / bpb->clusterSize; //I primi 2 sono sempre occupati
 
-    //Impostare la entry 0 e 1 e impostare il 2 cluster per la ROOT (per sicurezza)
+    //Setup FAT entry 0, 1, 2 just to be sure
     FAT[0] = bpb->mediaType;
     FAT[1] = 0xFFFFFFFF;
-    FAT[2] = 0xFFFFFFF8; //La root occupa un solo cluster
+    FAT[2] = 0xFFFFFFF8; //Root cluster
  
  
     updateFilesystem();    
@@ -532,7 +551,10 @@ void closeFile(File_t* file){
     writeCluster(file->clusterNumber, file->contents); //Aggiornare il file sul disco
     unloadString(file->path);
     unloadString(file->name);
-    genericFree(file->contents);
+
+    if(file->contents == clusterCache) isBufferFree = 1;
+    else genericFree(file->contents);
+
     genericFree(file);
 }
 void closeFolder(Folder_t* folder){
@@ -541,7 +563,10 @@ void closeFolder(Folder_t* folder){
     writeCluster(folder->clusterNumber, folder->entries); //Scrivere la cartella sul disco
     unloadString(folder->name);
     unloadString(folder->path);
-    genericFree(folder->entries);
+
+    if(folder->entries == (DirectoryEntry_t*)clusterCache) isBufferFree = 1;
+    else genericFree(folder->entries);
+
     genericFree(folder);
 }
 uint32_t getDiskCapacity(){

@@ -37,3 +37,5 @@ int strcmp(const char* s1, const char* s2); //Compara due stringhe
 int strlen(const char* s1); //Ritorna la lunghezza della stringa
 void strncpy(const char* s1, char* s2, size_t size); //Copia una stringa in un altra evitando l'overflow
 int strncmp(const char* s1, const char* s2, size_t size);  //Compara due stringhe evitando l'overflow
+void strcat(char* s1, const char* s2); //Appends s2 onto s1
+void strncat(char* s1, const char* s2, size_t size); //Appends s2 onto s1 without overflowing
