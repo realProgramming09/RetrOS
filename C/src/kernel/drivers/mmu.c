@@ -7,8 +7,8 @@
 
 #define E820_ADDR 0x4000
 #define E820_COUNT_ADDR 0x1FF0
-#define SEG_SIZE 0x80 //128B
-#define SEG_OFFSET_SIZE 0x10000
+#define SEG_SIZE 0x40 //128B
+#define SEG_OFFSET_SIZE 0x20000
 #define RAM_START_ADDR 0x100000
 #define BITMAP_ENTRY_SIZE 32
 
@@ -93,16 +93,16 @@ void* genericAlloc(size_t size){
     
 
     //Calculate how many segments the allocation occupies. Approx. by excess. 
-    uint16_t segCount = size;
-    uint16_t  effectiveSize = size + sizeof(SegmentHeader_t); //Accounting for header
+    uint32_t segCount = size;
+    uint32_t  effectiveSize = size + sizeof(SegmentHeader_t); //Accounting for header
     if(effectiveSize % SEG_SIZE == 0) segCount = effectiveSize / SEG_SIZE;
     else segCount = effectiveSize / SEG_SIZE +1;
 
     //Search for enough contigous bits
-    uint16_t actualCapacity = state->capacity / SEG_SIZE / BITMAP_ENTRY_SIZE; //The RAM size in entries, to not iterate on RAM that you don't have 
+    uint32_t actualCapacity = state->capacity / SEG_SIZE / BITMAP_ENTRY_SIZE; //The RAM size in entries, to not iterate on RAM that you don't have 
     uint16_t remaining =  segCount;
-    uint16_t segmentNumber = 0;
-    for(uint16_t i = firstFreePage; i < actualCapacity && remaining; i++){
+    uint32_t segmentNumber = 0;
+    for(uint32_t i = firstFreePage; i < actualCapacity && remaining; i++){
         if(state->segmentBitmap[i] == 0xFFFFFFFF){ //Entry completely full
             firstFreePage = i;
             continue;
@@ -135,7 +135,7 @@ void* genericAlloc(size_t size){
     };
     
     //Mark the segments as occupied 
-    uint16_t pageNumber = segmentNumber / BITMAP_ENTRY_SIZE;  //Page number
+    uint32_t pageNumber = segmentNumber / BITMAP_ENTRY_SIZE;  //Page number
     uint16_t segOffset = segmentNumber % BITMAP_ENTRY_SIZE;  //Segment number relative to page
     
     if(pageNumber < firstFreePage) firstFreePage = pageNumber;
@@ -174,7 +174,7 @@ void genericFree(void* ptr){
     uint32_t segNumber = (uint32_t)(ptr - RAM_START_ADDR - sizeof(header)) / SEG_SIZE; //Get the starting segment's number back from absolute address
    
     //Calculate which part to free
-    uint16_t pageNumber = segNumber / BITMAP_ENTRY_SIZE; //Il numero della pagina
+    uint32_t pageNumber = segNumber / BITMAP_ENTRY_SIZE; //Il numero della pagina
     uint16_t segOffset = segNumber % BITMAP_ENTRY_SIZE; //Il numero del segmento relativo alla pagina
     
     for(int i = 0; i < header.segmentCount; i++){

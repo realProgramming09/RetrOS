@@ -7,8 +7,8 @@
 
 #define E820_ADDR 0x4000
 #define E820_COUNT_ADDR 0x1FF0
-#define SEG_SIZE 0x80 //128B
-#define SEG_OFFSET_SIZE 0x10000
+#define SEG_SIZE 0x40 //128B
+#define SEG_OFFSET_SIZE 0x20000
 #define RAM_START_ADDR 0x100000
 
 /* THIS FILE IS THE EXACT SAME AS mmu.c, BUT IT IMPLEMENTS ONLY THE NECESSARY FUNCTIONS TO LOAD THE KERNEL INTO RAM */
@@ -77,10 +77,10 @@ void* genericAlloc(size_t size){
     else segCount = effectiveSize / SEG_SIZE +1;
 
     //Cercare per abbastanza segmenti liberi di fila
-    uint16_t actualCapacity = state->capacity / SEG_SIZE / 32; //La bitmap supporta fino a 256MB di RAM, realisticamente ne hai 4  
-    uint16_t remaining =  segCount;
+    uint32_t actualCapacity = state->capacity / SEG_SIZE / 32; //La bitmap supporta fino a 256MB di RAM, realisticamente ne hai 4  
+    uint32_t remaining =  segCount;
     uint8_t* base = 0;
-    for(uint16_t i = 0; i < actualCapacity; i++){
+    for(uint32_t i = 0; i < actualCapacity; i++){
         uint8_t found = 0; //Se abbiamo trovato quel che cerchiamo
         for(uint8_t j = 0; j < 32; j++){
             if(!remaining){ //Abbiamo trovato i segmenti che ci servono
@@ -89,7 +89,7 @@ void* genericAlloc(size_t size){
             }
             if(!(state->segmentBitmap[i] & ((uint32_t)1 << j))){
                 if(!base){ //Il primo segmento libero che incontriamo, impostiamone l'indirizzo assoluto in un puntatore
-                    uint16_t segNumber = i*32+j;
+                    uint32_t segNumber = i*32+j;
                     base = (uint8_t*)(RAM_START_ADDR + segNumber * SEG_SIZE);
                 }
                 remaining--;
@@ -112,8 +112,8 @@ void* genericAlloc(size_t size){
     
     //Marcare i segmenti del caso come occupati
     uint32_t segNumber = (uint32_t)(base - RAM_START_ADDR) / SEG_SIZE; //Riottenere il numero del segmento dall'indirizzo assoluto
-    uint16_t pageNumber = segNumber / 32; //Il numero della pagina
-    uint16_t segOffset = segNumber % 32; //Il numero del segmento relativo alla pagina
+    uint32_t pageNumber = segNumber / 32; //Il numero della pagina
+    uint32_t segOffset = segNumber % 32; //Il numero del segmento relativo alla pagina
     
     for(int i = 0; i < segCount; i++){
         if(segOffset == 32){ //Abbiamo raggiunto un confine di pagina

@@ -169,7 +169,7 @@ DirectoryEntry_t* findEntry(Folder_t* folder, char* fullName, uint8_t attributes
         if(folder->entries[i].attributes != attributes) continue; //L'attributo deve coincidere
 
         if(!strncmp(name, (char*)folder->entries[i].name, NAME_SIZE)){
-            if(attributes == 0x20){ //Se è un file, bisogna controllare anche l'estensione
+            if(attributes == ARCHIVE){ //Se è un file, bisogna controllare anche l'estensione
                 if(!strlen(extension) && folder->entries[i].extension[0] == 0){ //Se manca a uno, deve mancare all'altro
                     entry = &folder->entries[i];
                     break;
