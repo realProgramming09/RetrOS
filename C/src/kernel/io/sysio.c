@@ -98,12 +98,19 @@ char getChar(){
      
     char currentChar = 0;
     currentKeyPressed = 0; //Per sicurezza
-    while(currentKeyPressed <= 0); //Aspettiamo un input (il multitasking non esiste, quindi è così)
+    while(!currentKeyPressed){
+        asm volatile("hlt");//Aspettiamo un input (il multitasking non esiste, quindi è così)
+    }
         
-    if(currentKeyPressed == 0x2A) isShiftPressed = 1;
-    else if(currentKeyPressed == 0xAA) isShiftPressed = 0;
-    
-    if(currentKeyPressed >= 59 || currentKeyPressed == 0x2A || currentKeyPressed == 0xAA){
+    if(currentKeyPressed == 0x2A){ 
+        isShiftPressed = 1;
+        return 0;
+    }
+    else if(currentKeyPressed == 0xAA){
+        isShiftPressed = 0;
+        return 0;
+    } 
+    else if(currentKeyPressed >= 59){
         currentKeyPressed = 0;
         return 0;
     }

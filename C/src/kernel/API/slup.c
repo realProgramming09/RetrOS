@@ -8,7 +8,7 @@ int slupReceive(uint32_t ID, void* data, size_t size){
     if(!data || size < 1) return -1;
 
     int errorCode = listenCOM(CONNECTION_TIMEOUT); //Wait for everything to be sent into the buffer
-    if(errorCode) return -1;
+    if(errorCode) return 1;
 
     int leadSignature, receivedSize; //Declare all the variables we need to fill
 

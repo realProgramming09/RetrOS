@@ -143,13 +143,21 @@ DirectoryEntry_t* findEntry(Folder_t* folder, char* fullName, uint8_t attributes
     //Split fullName in name and extension
     char name[9] = {0};
     char extension[4] = {0};
-    for(int i = 0; fullName[i] != '.'; i++){ 
-        name[i] = fullName[i];
+    
+    if(attributes == ARCHIVE){
+        for(int i = 0; fullName[i] != '.'; i++){ 
+            name[i] = fullName[i];
+        }
+        for(int i = 0, length = strlen(name); i+length < strlen(fullName)-1; i++){ 
+            extension[i] = fullName[i+length+1];
+        }
     }
-    for(int i = 0, length = strlen(name); i+length < strlen(fullName)-1; i++){ 
-        extension[i] = fullName[i+length+1];
+    else{
+        for(int i = 0; i < strlen(fullName); i++){ 
+            name[i] = fullName[i];
+        }
     }
-
+    
     name[8] = 0;
     extension[3] = 0;
 
@@ -202,14 +210,14 @@ PathInfo parsePath(String* path, int attribute){
     char name[12] = {0}; //Buffer for entry name
     char parentName[12] = {0}; //Buffer for parent directory's name
     char parentPath[64] = {0}; //Buffer for parent directory's path
-    uint8_t pathLength = 64;
+     
 
    
 
     //Parse the path searching for entry
     uint32_t parentCluster = rootCluster;
     uint8_t extension = 0;
-    for(int i = 0, nameLength = 0, parentPathLength = 0; i < pathLength; i++){
+    for(int i = 0, nameLength = 0, parentPathLength = 0; i < strLength(path); i++){
         if(nameLength >= NAME_SIZE && !extension){
     
             return (PathInfo){.currentEntry = (DirectoryEntry_t*)NAME_TOO_LONG};
@@ -317,11 +325,12 @@ int create(String* path, int attribute){
     //Gestione errori
     if(!element.currentEntry) return INVALID_PATH;
     else if(element.currentEntry == (DirectoryEntry_t*)INVALID_PATH) return NOT_FOUND;
+    if(element.currentEntry == (DirectoryEntry_t*)NAME_TOO_LONG) return NAME_TOO_LONG;
     else if(element.currentEntry != (DirectoryEntry_t*)NOT_FOUND){
         closeFolder(element.parentDirectory);
         return ALREADY_EXISTS;
     } 
-    if(element.currentEntry == (DirectoryEntry_t*)NAME_TOO_LONG) return NAME_TOO_LONG;
+    
      
 
     //Estrapolare il nome del file/cartella dal path

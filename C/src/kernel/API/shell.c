@@ -9,6 +9,7 @@
 #define COMMANDS_NUMBER 21
  
 static String* shellPath = NULL;
+static char osName[23] = "RetrOS v0.0.1 - build 4";
 
 //The following functions are the commands that the shell supports. Unique commands are commented
 void send(String* input); //Sends data via serial using the SLUP protocol
@@ -175,31 +176,28 @@ void ls(String* input){
      
 }
 void sysinfo(String* input){
-    float totalDiskSpace = getDiskCapacity() / 1048576.0f; //La capacità totale del disco in MB
-    float freeDiskSpace = getDiskFreeSpace() / 1048576.0f; //Lo spazio libero sul disco in MB
-    float totalRamSpace = getTotalRam() / 1048576.0f; //La capacità totale della RAM in MB
-    float freeRamSpace = getFreeRam() / 1048576.0f; //Lo spazio libero in RAM in MB
 
+    //Gather info about RAM and disk and divide it by 1M to use MB
+    float totalDiskSpace = getDiskCapacity() / 1048576.0f;  
+    float freeDiskSpace = getDiskFreeSpace() / 1048576.0f;  
+    float totalRamSpace = getTotalRam() / 1048576.0f;  
+    float freeRamSpace = getFreeRam() / 1048576.0f;  
 
-    //Stampare le info appena raccolte
-    print(STRING_IMMEDIATE, "Total disk space: \0");
-    print(FLOAT, &totalDiskSpace);
-    print(STRING_IMMEDIATE, "MB\n\0");
-    
-    print(STRING_IMMEDIATE, "Free disk space: \0");
-    print(FLOAT, &freeDiskSpace);
-    print(STRING_IMMEDIATE, "MB\n\0");
-     
-    
-    print(STRING_IMMEDIATE, "Total RAM capacity: \0");
-    print(FLOAT, &totalRamSpace);
-    print(STRING_IMMEDIATE, "MB\n\0");
-     
+    setTerminalColor(RED);
+    println(STRING_IMMEDIATE, osName);
 
-    print(STRING_IMMEDIATE, "Free RAM: \0");
-    print(FLOAT, &freeRamSpace);
-    print(STRING_IMMEDIATE, "MB\n\0");
+    #define PRINT_INFO(intro, total, free)\
+        setTerminalColor(YELLOW);\
+        print(STRING_IMMEDIATE, intro);\
+        setTerminalColor(WHITE);\
+        print(FLOAT, &total);\
+        print(STRING_IMMEDIATE, "MB (");\
+        print(FLOAT, &free);\
+        println(STRING_IMMEDIATE, "MB free)");\
     
+
+    PRINT_INFO("RAM: ", totalRamSpace, freeRamSpace);
+    PRINT_INFO("Storage: ", totalDiskSpace, freeDiskSpace);
 
    
 }
@@ -436,7 +434,7 @@ void shutDown(String* input){
 void help(String* input){
     int colors[2] = {YELLOW, (int)getTerminalColor()};
     char* messages[] = { //Messaggi di aiuto
-        "echo [STRING] \0","- print something\n\0",
+        "echo [STRING] \0","- prints something\n\0",
         "ls \0","- displays current directory contents\n\0",
         "sysinfo \0","- displays info about RAM and storage\n\0",
         "mkdir [DIRECTORY_NAME] \0", "- creates a directory\n\0",
@@ -450,9 +448,11 @@ void help(String* input){
         "cat [FILE_NAME] \0", "- displays a file's contents\n\0",
         "write [FILE_NAME] [DATA] \0", "- overwrites a file\n\0",
         "cp [FILE1_NAME] [FILE2_NAME] \0", "- copies a file into another, creating a new one or overwriting an existing one\n\0",
-        "help \0","- prints this\n\0", "\0",
-        "load [FILE_NAME] \0", "- listens to serial and writes the contents to a file\n\0",
-        "run [PROGRAM_NAME] \0", "- runs a .bin file\n\0"
+        "help \0","- prints this\n\0",
+        "load [FILE_NAME] \0", "- listens to serial using the SLUP protocol and writes the contents to a file\n\0",
+        "run [PROGRAM_NAME] \0", "- runs a .bin file\n\0",
+        "bench \0", " - runs the same thing over and over and monitors how much it takes\n\0",
+        "send [STRING] \0", "- sends something via serial using the SLUP protocol\n\0", "\0"
     };
 
     //Stampare i messaggi di aiuto
@@ -625,11 +625,13 @@ void load(String* input){
     int size;
     
     println(STRING_IMMEDIATE, "Listening to serial...\0");
-    if((size = slupReceive(COM1, data, 32768)) < 0){
+    if((size = slupReceive(COM1, data, 32768)) < 1){
         genericFree(data);
         closeFile(file);
         if(isFileCreated) deleteFile(fullPath);
-        println(STRING_IMMEDIATE, "Something went wrong...\0");
+        if(size == 1) println(STRING_IMMEDIATE, "Timeout.\0");
+        else println(STRING_IMMEDIATE, "Something went wrong...\0");
+        return;
     }
 
     //Scrivere il file
@@ -647,7 +649,7 @@ void benchmark(String* input){
     
     int start = now(), end = 0;;
     #define TESTS 1000000
-    #define OVERHEAD 1850
+    #define OVERHEAD 50
     int i = 0;
      
     String* s = new("hey.txt"); 
@@ -658,7 +660,7 @@ void benchmark(String* input){
         void* allocation = genericAlloc(sizeof(int));
         genericFree(allocation);
 
-        printStatic(INT, &i); //Prints how many tests have been completed
+        //printStatic(INT, &i); //Prints how many tests have been completed
        
     }
     end = now();
