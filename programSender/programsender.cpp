@@ -95,13 +95,6 @@ public:
             return false;
         }
         
-        // Footer magic
-         uint32_t footerMagic = 0x738F3C42;
-        if (!sendAll(&footerMagic, sizeof(footerMagic))) {
-            std::cerr << "Errore invio footer" << std::endl;
-            close(sockfd);
-            return false;
-        }
         
         close(sockfd);
         std::cout << "File inviato con successo!" << std::endl;

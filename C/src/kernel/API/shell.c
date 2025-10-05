@@ -2,7 +2,7 @@
 #include "kernel/memory.h"
 #include "kernel/sysio.h"
 #include "kernel/files.h"
-#include "kernel/serial.h"
+#include "kernel/slup.h"
 #include "kernel/bsod.h"
 #include "kernel/timer.h"
 #include "kernel/disk.h"
@@ -618,53 +618,19 @@ void load(String* input){
     //Creare un nuovo file o aprirne uno esistente a quel percorso
     int isFileCreated = !newFile(fullPath);
     File_t* file = openFile(fullPath);
-     
+    
+    void* data = genericAlloc(32768); //A whole cluster
     
     println(STRING_IMMEDIATE, "Listening to serial...\0");
-
-    //Dichiarare i dati necessari: firma iniziale, dimensione, firma finale
-    uint32_t leadSignature = 0, fileSize = 0, trailSignature = 0;
-
-    serialInit(COM1, 6);
-
-    //Macro locale per semplificare la gestione errori
-    #define VALIDATE(cond, message)\
-    if(cond){\
-        println(STRING_IMMEDIATE, message);\
-        if(isFileCreated){\
-            deleteFile(file->path);\
-        }\
-        closeFile(file);\
-        unloadString(fullPath);\
-        unloadArray(tokens);\
-        return;\
-    }\
-
-    //Mettersi in ascolto sulla COM
-    int serialError = listenCOM(5000);
-    VALIDATE(serialError, "Timeout.\0")
-    
-    //Leggere la firma iniziale
-    recCOM(COM1, (uint8_t*)&leadSignature, sizeof(uint32_t));
-    VALIDATE(leadSignature != 0xD72A90B1, "Invalid format: missing front signature.\0")
-
-    println(STRING_IMMEDIATE, "I got something! Writing to file...\0");
-     
-    
-    //Leggere la dimensione 
-    recCOM(COM1, (uint8_t*)&fileSize, sizeof(uint32_t));
-    VALIDATE(fileSize == 0, "Invalid format: invalid size.\0")
-
-    //Leggere i contenuti
-    recCOM(COM1, file->contents, fileSize);
-
-    //Leggere la firma finale
-    print(STRING_IMMEDIATE, "Validating...\n\0");
-    recCOM(COM1, (uint8_t*)&trailSignature, sizeof(uint32_t));
-    VALIDATE(trailSignature != 0x738F3C42 && trailSignature > 0, "Invalid format: wrong tail signature.\0")
+    if(slupReceive(COM1, data, 32768)){
+        genericFree(data);
+        closeFile(file);
+        if(isFileCreated) deleteFile(fullPath);
+        println(STRING_IMMEDIATE, "Something went wrong...\0");
+    }
 
     //Scrivere il file
-    writeToFile(file, file->contents, fileSize);
+    writeToFile(file, data, 32768);
     println(STRING_IMMEDIATE, "All done. Enjoy your new file.\0");
 
     //Scaricare la RAM e liberare il terminale

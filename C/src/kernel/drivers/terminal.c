@@ -24,9 +24,9 @@ static uint8_t charX; //Posizione del carattere sulla linea
 
 void scrollTerminal(){
     //Copiare ogni riga di terminale nella precedente
-    for(int i = 0; i < TEXT_MAX_HEIGHT-1; i++){
+    for(int i = 1; i < TEXT_MAX_HEIGHT; i++){
         for(int j = 0; j < TEXT_MAX_WIDTH; j++){
-            terminal.frameBuffer[j + i * TEXT_MAX_WIDTH] = terminal.frameBuffer[j + (i-1)*TEXT_MAX_WIDTH];
+            terminal.frameBuffer[j + (i-1) * TEXT_MAX_WIDTH] = terminal.frameBuffer[j + i*TEXT_MAX_WIDTH];
         }
     }
 
@@ -49,8 +49,9 @@ static inline void deleteChar(){
     if(charX > 0) terminal.frameBuffer[--charX + TEXT_MAX_WIDTH * terminal.lineNumber] = (terminal.color << 8) | ' '; //Scrivere in memoria video uno spazio per cancellare
 }
 static inline void putChar(char c){
+    if(charX+1 > TEXT_MAX_WIDTH) newLine(); //Andare a capo se necessario
     terminal.frameBuffer[charX++ + TEXT_MAX_WIDTH * terminal.lineNumber] = (terminal.color << 8) | c; //Scrivere in memoria video
-    if(charX > TEXT_MAX_WIDTH) newLine(); //Andare a capo se necessario
+    
 }
 static inline void setCursorBlink(int isBlinking){
     sendByte(CURSOR_REGISTERS, 0x0A);

@@ -37,12 +37,7 @@ This is an operating system written in a few months by a 16 y/o who likes osdev.
     will send your file to the OS via emulated serial
 
 **HOW TO WORK WITH SERIAL**
-I invented a protocol called SLU (Serial Line Upload). It works like this:
-- 4 bytes: signature **0xD72A90B1**
-- 4 bytes: packet size
-- n bytes: packet data (has to be as big as the size specified earlier)
-- 4 bytes: signature **0x738F3C42** (optional, useful to terminate connection now and don't wait for timeout)
-- In receiving, there is a timeout of approx. 5s for connection and 100ms for each byte sent
+Data can be sent and received via sending data to **localhost:4321** via the SLUP protocol. Read the wiki to see how it works
 
 **THE SYSCALL LIBRARY**
      In the lib folder there is a file called libos.a (it will be created at compile-time if it isn't there)

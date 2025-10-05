@@ -94,7 +94,8 @@ kernel: $(KERNEL_FILES)
 	$(CC) $(CC_FLAGS) -o obj/API/math.o $(KERNEL_SRC_DIR)/API/math.c -I "$(INCLUDE_DIR)" 
 	$(CC) $(CC_FLAGS) -o obj/API/shell.o $(KERNEL_SRC_DIR)/API/shell.c -I "$(INCLUDE_DIR)" -Wno-unused-parameter -O2
 	$(CC) $(CC_FLAGS) -o obj/API/queue.o $(KERNEL_SRC_DIR)/API/queue.c -I "$(INCLUDE_DIR)"   
-	
+	$(CC) $(CC_FLAGS) -o obj/API/slup.o $(KERNEL_SRC_DIR)/API/slup.c -I "$(INCLUDE_DIR)"   
+
 	$(CC) $(CC_FLAGS) -o obj/drivers/mmu.o $(KERNEL_SRC_DIR)/drivers/mmu.c -I "$(INCLUDE_DIR)"  -O2
 	$(CC) $(CC_FLAGS) -o obj/drivers/idt.o $(KERNEL_SRC_DIR)/drivers/idt.c -I "$(INCLUDE_DIR)" -Wno-address-of-packed-member
 	$(CC) $(CC_FLAGS) -o obj/drivers/terminal.o $(KERNEL_SRC_DIR)/drivers/terminal.c -I "$(INCLUDE_DIR)"   
