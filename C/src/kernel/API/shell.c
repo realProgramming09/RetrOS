@@ -5,34 +5,34 @@
 #include "kernel/slup.h"
 #include "kernel/bsod.h"
 #include "kernel/timer.h"
-#include "kernel/disk.h"
 
-
-#define COMMANDS_NUMBER 20
+#define COMMANDS_NUMBER 21
  
 static String* shellPath = NULL;
 
-void benchmark(String* input); //Print system timer's value
-void load(String* input); //Carica un file da seriale
-void run(String* input); //Lancia un .bin utente
-void cp(String* input); //Copia un file in un altro
-void writeCommand(String* input); //Scrive qualcosa in un file
-void cat(String* input); //Mostra a schermo i contenuti di un file
-void suicideNow(String* input); //Si uccide
-void help(String* input); //Genera una lista di comandi utili
-void shutDown(String* input); //Incastra il kernel in un loop dal quale è impossibile uscire, permettendo di spegnere il PC in sicurezza
-void rmdir(String* input); //Rimuove una cartella se essa è vuota
-void rm(String* input); //Rimuove un file
-void rndir(String* input); //Rinomina una cartella
-void ren(String* input); //Rinomina un file 
-void mkfile(String* input); //Crea un file
-void clear(String* input); //Pulisce lo schermo
-void cd(String* input); //Cambia il percorso del terminale
-void mkdir(String* input); //Crea una cartella al percorso specificato
-void sysinfo(String* input); //Ottiene informazioni su RAM e disco
-void ls(String* input); //Lista le cartelle presenti a schermo
-void echo(String*input); //Stampa una stringa a schermo
-void notFound(); //Stampa un messaggio di errore 
+//The following functions are the commands that the shell supports. Unique commands are commented
+void send(String* input); //Sends data via serial using the SLUP protocol
+void benchmark(String* input); //Runs benchmark 
+void load(String* input); //Reads a file's contents via serial
+void run(String* input); //Launches a .bin user
+void cp(String* input); 
+void writeCommand(String* input); //Writes something to file
+void cat(String* input);  
+void suicideNow(String* input); //Kills himself
+void help(String* input);  
+void shutDown(String* input); //Prepares the PC for manual shutdown
+void rmdir(String* input);  
+void rm(String* input);  
+void rndir(String* input); //Renames a directory
+void ren(String* input); //Renames a file
+void mkfile(String* input); //Creates a file
+void clear(String* input);  
+void cd(String* input);  
+void mkdir(String* input); 
+void sysinfo(String* input); //Obtains info about the system
+void ls(String* input); 
+void echo(String*input);
+void notFound(); //Prints an error message
 
  
 static inline String* getFullPath(String* path){
@@ -43,13 +43,13 @@ static inline String* getFullPath(String* path){
 } 
 
 void initShell(){
-    shellPath = newBuffer(64); //Allocare dinamicamente il path della shell
+    shellPath = newBuffer(64); //Shell path is allocated on RAM
 }
 void launchShell(){
     if(!shellPath) return;
 
     //La lista di comandi riconosciuti
-    char* commandList[COMMANDS_NUMBER] = {
+    char* commandList[] = {
         "echo\0",
         "ls\0",
         "sysinfo\0",
@@ -69,11 +69,12 @@ void launchShell(){
         "cp\0",
         "run\0",
         "load\0",
-        "bench\0"
+        "bench\0",
+        "send\0"
     };
 
     //Lista di callback per ogni comando
-    void (*callbackList[COMMANDS_NUMBER])(String*) = {
+    void (*callbackList[])(String*) = {
         echo,
         ls,
         sysinfo,
@@ -93,32 +94,33 @@ void launchShell(){
         cp,
         run,
         load,
-        benchmark
+        benchmark,
+        send
     };
     
     for(;;){
         
-        //Stampare il percorso della shell
+        //Print shell's path
         setTerminalColor(LIGHT_GREEN);
         print(STRING_IMMEDIATE, "C:/\0");
         print(STRING, shellPath);
         print(STRING_IMMEDIATE, ">\0");
         setTerminalColor(WHITE);
 
-        //Memorizzare l'input da tastiera e metterlo nel buffer
+        //Get keyboard input into a buffer
         char input[64];
         scanTerminal((uint8_t*)input, 64);
 
         if(input[0] == '\0') continue;
 
          
-        //Cercare nella lista di comandi quello giusto
+        //Parse the command list and run the right command
         int found = 0;
         String* inputString = new(input);
         StringArray* tokens = split(inputString, ' ');
         for(int i = 0; i < COMMANDS_NUMBER;  i++){
             if((found = !compareImmediate(tokens->data[0], commandList[i], strlen(commandList[i])))){
-                callbackList[i](inputString); //Se l'abbiamo trovato, eseguire il comando
+                callbackList[i](inputString); 
                 break;
             } 
         }
@@ -620,9 +622,10 @@ void load(String* input){
     File_t* file = openFile(fullPath);
     
     void* data = genericAlloc(32768); //A whole cluster
+    int size;
     
     println(STRING_IMMEDIATE, "Listening to serial...\0");
-    if(slupReceive(COM1, data, 32768)){
+    if((size = slupReceive(COM1, data, 32768)) < 0){
         genericFree(data);
         closeFile(file);
         if(isFileCreated) deleteFile(fullPath);
@@ -630,13 +633,14 @@ void load(String* input){
     }
 
     //Scrivere il file
-    writeToFile(file, data, 32768);
+    writeToFile(file, data, size);
     println(STRING_IMMEDIATE, "All done. Enjoy your new file.\0");
 
     //Scaricare la RAM e liberare il terminale
     closeFile(file);
     unloadString(fullPath);
     unloadArray(tokens);
+    genericFree(data);
 }  
 void benchmark(String* input){
     println(STRING_IMMEDIATE, "Starting benchmark...\0");
@@ -686,4 +690,15 @@ void benchmark(String* input){
     else println(STRING_IMMEDIATE, "Time for test is less than 1ms.");
      
     
+}
+void send(String* input){
+    StringArray* tokens = splitQuotes(input, ' ');
+    if(tokens->length < 2){
+        println(STRING_IMMEDIATE, "Incomplete command. Type in 'help' to get a list of commands.\0");
+        unloadArray(tokens);
+        return;
+    }
+
+    slupSend(COM1, strPointer(tokens->data[1]), strLength(tokens->data[1])); //Send the string in quotes via serial 
+    unloadArray(tokens);
 }

@@ -3,34 +3,34 @@
 #include "kernel/sys.h"
 #include "kernel/serial.h"
 
-//Macro per lo schermo
+//Fixed screen data
 #define VGA_TEXT_ADDRESS 0xB8000
 #define TEXT_MAX_WIDTH 80
 #define TEXT_MAX_HEIGHT 25
 
-//Macro per le porte del cursore
+//Cursor ports
 #define CURSOR_REGISTERS 0x3D4
 #define CURSOR_DATA 0x3D5
 
 typedef struct Terminal {
-    uint16_t* frameBuffer; //Puntatore alla VRAM
-    uint8_t color; //Colore del terminale
-    uint8_t lineNumber; //Numero linea corrente
-    uint16_t cursorPosition; //Posizione del cursore
+    uint16_t* frameBuffer; //Pointer to VRAM
+    uint8_t color; //Terminal color
+    uint8_t lineNumber; //Current line number
+    uint16_t cursorPosition; //Cursor's position
 } Terminal_t;
  
 static Terminal_t terminal;
-static uint8_t charX; //Posizione del carattere sulla linea
+static uint8_t charX; //Char position on current line
 
 void scrollTerminal(){
-    //Copiare ogni riga di terminale nella precedente
+    //Copiay every line into the previous one
     for(int i = 1; i < TEXT_MAX_HEIGHT; i++){
         for(int j = 0; j < TEXT_MAX_WIDTH; j++){
             terminal.frameBuffer[j + (i-1) * TEXT_MAX_WIDTH] = terminal.frameBuffer[j + i*TEXT_MAX_WIDTH];
         }
     }
 
-    //Svuotare l'ultima riga
+    //Empty out the last line
     for(int i = 0; i < TEXT_MAX_WIDTH; i++){
         terminal.frameBuffer[i + (TEXT_MAX_HEIGHT-1)*TEXT_MAX_WIDTH] = (terminal.color << 8) | ' ';
     }
@@ -43,14 +43,14 @@ static inline void updateCursor(uint16_t pos){
 }
 static inline void newLine(){
     charX = 0;
-    if(++terminal.lineNumber >= TEXT_MAX_HEIGHT) scrollTerminal(); //Scrollare per necessario
+    if(++terminal.lineNumber >= TEXT_MAX_HEIGHT) scrollTerminal(); //Scroll if necessary
 }
 static inline void deleteChar(){
-    if(charX > 0) terminal.frameBuffer[--charX + TEXT_MAX_WIDTH * terminal.lineNumber] = (terminal.color << 8) | ' '; //Scrivere in memoria video uno spazio per cancellare
+    if(charX > 0) terminal.frameBuffer[--charX + TEXT_MAX_WIDTH * terminal.lineNumber] = (terminal.color << 8) | ' '; //Write a ' ' to delete
 }
 static inline void putChar(char c){
-    if(charX+1 > TEXT_MAX_WIDTH) newLine(); //Andare a capo se necessario
-    terminal.frameBuffer[charX++ + TEXT_MAX_WIDTH * terminal.lineNumber] = (terminal.color << 8) | c; //Scrivere in memoria video
+    if(charX+1 > TEXT_MAX_WIDTH) newLine(); 
+    terminal.frameBuffer[charX++ + TEXT_MAX_WIDTH * terminal.lineNumber] = (terminal.color << 8) | c; //Write directly to VRAM
     
 }
 static inline void setCursorBlink(int isBlinking){
