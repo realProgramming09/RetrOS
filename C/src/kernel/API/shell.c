@@ -1,6 +1,6 @@
 #include "kernel/str.h"
 #include "kernel/memory.h"
-#include "kernel/sysio.h"
+#include "kernel/print.h"
 #include "kernel/files.h"
 #include "kernel/slup.h"
 #include "kernel/bsod.h"

@@ -13,6 +13,7 @@ MMU_t* mmuInit(); //Inizializza la MMU
 uint32_t detectRam(void); //Ritorna la capacità della RAM
 void loadMMU(MMU_t* m); //Carica una MMU. utile per comunicare
 
+void reserve(void* address, size_t size); //Reserves space for the pointer so it doesn't get corrupted
 void* genericAlloc(size_t size); //Allocatore generico
 void* genericRealloc(void* ptr, size_t size); //Ri-allocatore generico
 void genericFree(void* ptr); //Libera un puntatore generico

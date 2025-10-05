@@ -7,8 +7,8 @@
 
 #define E820_ADDR 0x4000
 #define E820_COUNT_ADDR 0x1FF0
-#define SEG_SIZE 0x40 //128B
-#define SEG_OFFSET_SIZE 0x20000
+#define SEG_SIZE 0x40 //64B
+#define INITIAL_BITMAP_SIZE 0x1000
 #define RAM_START_ADDR 0x100000
 #define BITMAP_ENTRY_SIZE 32
 
@@ -37,13 +37,38 @@ typedef struct SegmentHeader{
 static int firstFreePage = 0;
 static MMU_t* state;
 static uint32_t initialAddress = NULL;
-static uint32_t segmentBitmap[SEG_OFFSET_SIZE];
+static uint32_t initialBitmap[INITIAL_BITMAP_SIZE];
+static uint32_t* segmentBitmap = NULL;
+static uint32_t bitmapSize = 0;
 
- 
+
+void mark(uint32_t segNumber, uint32_t size){
+    uint32_t pageNumber = segNumber / BITMAP_ENTRY_SIZE;  //Page number
+    uint16_t segOffset = segNumber % BITMAP_ENTRY_SIZE;  //Segment number relative to page
+    
+    if(pageNumber < firstFreePage) firstFreePage = pageNumber;
+    for(int i = 0; i < size; i++){
+        if(segOffset ==  BITMAP_ENTRY_SIZE ) { //We reached a page end
+            segOffset = 0;
+            pageNumber++;
+        }
+        
+        state->segmentBitmap[pageNumber] |= ((uint32_t)1 << segOffset++); //Set the current bit to 1
+        state->freeAmount -= SEG_SIZE;
+        
+    }
+}
+void reserve(void* data, size_t size){
+     int segAbsNumber = ((uint32_t)data - RAM_START_ADDR) / SEG_SIZE;
+
+     int segCount = size / 64 + (size % 64 != 0);
+     mark(segAbsNumber, segCount);
+}
+
 
 static inline void* MMUAlloc(MMU_t* local, size_t size){
      state = local;
-     state->segmentBitmap = segmentBitmap;
+     state->segmentBitmap = (segmentBitmap) ? segmentBitmap : initialBitmap;
      return genericAlloc(size);
 }
 uint32_t detectRam(void){  
@@ -62,10 +87,18 @@ uint32_t detectRam(void){
 void loadMMU(MMU_t* m){
     
     
-    for(uint32_t i = 0; i < SEG_OFFSET_SIZE; i++){ 
-        segmentBitmap[i] = (i < 1024) ? m->segmentBitmap[i] : 0;
+    for(uint32_t i = 0; i < 1024; i++){ 
+        initialBitmap[i] = m->segmentBitmap[i];
     }
-     
+    
+    //Allocate bitmap on RAM and set it up
+    bitmapSize = m->capacity / SEG_SIZE / BITMAP_ENTRY_SIZE;
+    segmentBitmap = (uint32_t*)MMUAlloc(m, bitmapSize);
+    for(int i = 0; i < bitmapSize && i < INITIAL_BITMAP_SIZE; i++){
+         segmentBitmap[i] = initialBitmap[i];
+    }
+
+
     //Allocate state on RAM and set it up
     state = MMUAlloc(m, sizeof(MMU_t));
     *state = (MMU_t){
@@ -74,13 +107,16 @@ void loadMMU(MMU_t* m){
         .segmentBitmap = segmentBitmap
     };
     
+    
 
     //Mark &state as occupied so it doesn't get corrupted
     initialAddress = (uint32_t)&state;
-    int segAbsNumber = (initialAddress - RAM_START_ADDR) / SEG_SIZE;
-    state->segmentBitmap[segAbsNumber / BITMAP_ENTRY_SIZE] |= ((uint32_t)1 << segAbsNumber % BITMAP_ENTRY_SIZE); //Impostare il segmento dove si trova a 1 
+    reserve((void*)initialAddress, sizeof(state));
+
+    //Mark &segmentBitmap as occupied so it doesn't get corrupted
+    reserve(&segmentBitmap, sizeof(segmentBitmap));
+    //reserve(segmentBitmap, sizeof(uint32_t)*bitmapSize);
      
- 
 }
 void* genericAlloc(size_t size){
     if(size < 1) return NULL; //Dimensione invalida
@@ -93,10 +129,10 @@ void* genericAlloc(size_t size){
     
 
     //Calculate how many segments the allocation occupies. Approx. by excess. 
-    uint32_t segCount = size;
+     
     uint32_t  effectiveSize = size + sizeof(SegmentHeader_t); //Accounting for header
-    if(effectiveSize % SEG_SIZE == 0) segCount = effectiveSize / SEG_SIZE;
-    else segCount = effectiveSize / SEG_SIZE +1;
+    uint32_t segCount = effectiveSize / SEG_SIZE + (effectiveSize % SEG_SIZE != 0);
+     
 
     //Search for enough contigous bits
     uint32_t actualCapacity = state->capacity / SEG_SIZE / BITMAP_ENTRY_SIZE; //The RAM size in entries, to not iterate on RAM that you don't have 
@@ -135,21 +171,7 @@ void* genericAlloc(size_t size){
     };
     
     //Mark the segments as occupied 
-    uint32_t pageNumber = segmentNumber / BITMAP_ENTRY_SIZE;  //Page number
-    uint16_t segOffset = segmentNumber % BITMAP_ENTRY_SIZE;  //Segment number relative to page
-    
-    if(pageNumber < firstFreePage) firstFreePage = pageNumber;
-    for(int i = 0; i < segCount; i++){
-        if(segOffset ==  BITMAP_ENTRY_SIZE ) { //We reached a page end
-            segOffset = 0;
-            pageNumber++;
-        }
-        
-        state->segmentBitmap[pageNumber] |= ((uint32_t)1 << segOffset++); //Set the current bit to 1
-        state->freeAmount -= SEG_SIZE;
-        
-    }
-
+    mark(segmentNumber, segCount);
     
 
     //Place header just before pointer

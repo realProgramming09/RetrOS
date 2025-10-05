@@ -1,6 +1,7 @@
 #include "kernel/terminal.h"
-#include "kernel/sysio.h"
+#include "kernel/keyboard.h"
 #include "kernel/sys.h"
+#include "kernel/sysio.h"
 #include "kernel/serial.h"
 
 //Fixed screen data
@@ -50,6 +51,7 @@ static inline void deleteChar(){
 }
 static inline void putChar(char c){
     if(charX+1 > TEXT_MAX_WIDTH) newLine(); 
+    if(!terminal.frameBuffer) terminal.frameBuffer = (uint16_t*)VGA_TEXT_ADDRESS;
     terminal.frameBuffer[charX++ + TEXT_MAX_WIDTH * terminal.lineNumber] = (terminal.color << 8) | c; //Write directly to VRAM
     
 }

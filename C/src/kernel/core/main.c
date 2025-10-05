@@ -1,4 +1,4 @@
-#include "kernel/sysio.h"
+#include "kernel/print.h"
 #include "kernel/terminal.h"
 #include "kernel/sys.h"
 #include "kernel/memory.h"
@@ -9,10 +9,13 @@
 #include "kernel/bsod.h"
 #include "kernel/serial.h"
 #include "kernel/shell.h"
+#include "kernel/keyboard.h"
 
 void main(){
     //Inizializzare le risorse
     loadMMU((MMU_t*)0x5000); 
+    
+    initKeyboard();
     terminalInit();
     rootDirInit();
     initShell();

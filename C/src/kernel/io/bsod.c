@@ -1,6 +1,6 @@
 #include "kernel/bsod.h"
 #include "kernel/terminal.h"
-#include "kernel/sysio.h"
+#include "kernel/print.h"
 
 int panicCode = 0;
 

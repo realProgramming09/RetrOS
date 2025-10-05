@@ -1,7 +1,7 @@
 #include "user/kernelAPI.h"
 #include "kernel/serial.h"
 #include "kernel/files.h"
-#include "kernel/sysio.h"
+#include "kernel/print.h"
  
 uint32_t syscall(uint32_t syscallNumber, uint32_t param1, uint32_t param2, uint32_t param3){
     uint32_t result;

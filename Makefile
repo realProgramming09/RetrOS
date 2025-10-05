@@ -87,7 +87,7 @@ kernel: $(KERNEL_FILES)
 	$(CC) $(CC_FLAGS) -o obj/core/main.o $(KERNEL_SRC_DIR)/core/main.c -I "$(INCLUDE_DIR)"  
 	$(CC) $(CC_FLAGS) -o obj/core/syscallHandler.o $(KERNEL_SRC_DIR)/core/syscallHandler.c -I "$(INCLUDE_DIR)" -O2 
 
-	$(CC) $(CC_FLAGS) -o obj/io/sysio.o $(KERNEL_SRC_DIR)/io/sysio.c -I "$(INCLUDE_DIR)"   
+	$(CC) $(CC_FLAGS) -o obj/API/print.o $(KERNEL_SRC_DIR)/API/print.c -I "$(INCLUDE_DIR)"   
 	$(CC) $(CC_FLAGS) -o obj/io/bsod.o $(KERNEL_SRC_DIR)/io/bsod.c -I "$(INCLUDE_DIR)"   
 	
 	$(CC) $(CC_FLAGS) -o obj/API/string.o $(KERNEL_SRC_DIR)/API/string.c -I "$(INCLUDE_DIR)"  
@@ -102,7 +102,7 @@ kernel: $(KERNEL_FILES)
 	$(CC) $(CC_FLAGS) -o obj/drivers/disk.o $(KERNEL_SRC_DIR)/drivers/disk.c -I "$(INCLUDE_DIR)"   
 	$(CC) $(CC_FLAGS) -o obj/drivers/files.o $(KERNEL_SRC_DIR)/drivers/files.c -I "$(INCLUDE_DIR)"  -Wno-address-of-packed-member 
 	$(CC) $(CC_FLAGS) -o obj/drivers/serial.o $(KERNEL_SRC_DIR)/drivers/serial.c -I "$(INCLUDE_DIR)"  
-	
+	$(CC) $(CC_FLAGS) -o obj/drivers/keyboard.o $(KERNEL_SRC_DIR)/drivers/keyboard.c -I "$(INCLUDE_DIR)" 
 	
 	$(CC) $(CC_FLAGS) -o obj/user/kernelAPI.o $(KERNEL_SRC_DIR)/user/kernelAPI.c -I "$(INCLUDE_DIR)"  -Wno-discarded-qualifiers
 	$(CC) $(CC_FLAGS) -o obj/drivers/timer.o $(KERNEL_SRC_DIR)/drivers/timer.c -I "$(INCLUDE_DIR)"   

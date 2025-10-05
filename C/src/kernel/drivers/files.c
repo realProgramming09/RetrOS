@@ -514,7 +514,7 @@ void rootDirInit(){
     FATsize = bpb->largeTotalSectors - bpb->clusterSize; //Impostare una dimensione per lavorarci
 
     //Setup the FSinfo
-    if(fs->freeClusters == 0xFFFFFFFF || fs->freeClusters > bpb->largeTotalSectors / bpb->clusterSize) fs->freeClusters = (bpb->largeTotalSectors - bpb->reservedSectors - bpb->sectorsPerFat) / bpb->clusterSize; //I primi 2 sono sempre occupati
+    if(fs->freeClusters == 0xFFFFFFFF) fs->freeClusters = (bpb->largeTotalSectors - bpb->reservedSectors - bpb->sectorsPerFat) / bpb->clusterSize; //I primi 2 sono sempre occupati
 
     //Setup FAT entry 0, 1, 2 just to be sure
     FAT[0] = bpb->mediaType;

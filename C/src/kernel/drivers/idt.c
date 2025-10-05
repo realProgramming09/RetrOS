@@ -207,6 +207,7 @@ void isrHandler(struct ISRFrame* frame){
             launchBSOD(createFrame(frame), panicCode);
             break;
         }
+       
         default: {
             launchBSOD(createFrame(frame), 0);
             break;
